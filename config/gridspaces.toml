@@ -1,8 +1,9 @@
 [grid]
 rows = [
   ["1", "2", "3", "4", "5"],
-  ["Q", "W", "E"],
-  ["A", "S", "D"],
+  ["Q", "W", "E", "R", "T"],
+  ["A", "S", "D", "F", "G"],
+  ["Y", "X", "C", "V", "B"],
 ]
 
 [keys]
@@ -17,6 +18,28 @@ move_left = "shift+h"
 move_down = "shift+j"
 move_up = "shift+k"
 move_right = "shift+l"
+
+[keys.workspaces]
+"1" = "1"
+"2" = "2"
+"3" = "3"
+"4" = "4"
+"5" = "5"
+q = "Q"
+w = "W"
+e = "E"
+r = "R"
+t = "T"
+a = "A"
+s = "S"
+d = "D"
+f = "F"
+g = "G"
+y = "Y"
+x = "X"
+c = "C"
+v = "V"
+
 
 [behavior]
 wrap = false
