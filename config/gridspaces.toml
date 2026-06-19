@@ -1,0 +1,25 @@
+[grid]
+rows = [
+  ["1", "2", "3", "4", "5"],
+  ["Q", "W", "E"],
+  ["A", "S", "D"],
+]
+
+[keys]
+left = "h"
+down = "j"
+up = "k"
+right = "l"
+confirm = "return"
+cancel = "escape"
+close_all = "x"
+move_left = "shift+h"
+move_down = "shift+j"
+move_up = "shift+k"
+move_right = "shift+l"
+
+[behavior]
+wrap = false
+confirm_close_all = true
+move_mode = "directional"
+monitor_wrap = false
