@@ -71,6 +71,10 @@ final class PanelController: NSObject, NSWindowDelegate {
         removeKeyMonitor()
     }
 
+    func windowDidResignKey(_ notification: Notification) {
+        close()
+    }
+
     private func installKeyMonitor() {
         removeKeyMonitor()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
