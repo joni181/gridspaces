@@ -8,6 +8,9 @@ Manual checks on a machine running AeroSpace:
 
 - `gridspaces open` shows the popup and highlights the focused workspace.
 - `h/j/k/l` and arrows move only the highlight; `Enter` focuses it; `Esc` cancels.
+- A configured key under `[keys.workspaces]` focuses its workspace and closes the popup.
+- Direct workspace keys are case-insensitive; modified variants do not trigger them.
+- Navigation and action keys take precedence over colliding direct workspace keys.
 - `x` asks for confirmation before closing the highlighted workspace's windows.
 - `Shift+h/j/k/l` moves the highlighted workspace between displays and preserves focus.
 - `gridspaces focus --direction right` switches without opening the popup.

@@ -21,6 +21,10 @@ import Testing
         left = "a"
         close_all = "c"
 
+        [keys.workspaces]
+        w = "W"
+        X = "workspace-x"
+
         [behavior]
         wrap = true
         confirm_close_all = false
@@ -34,6 +38,7 @@ import Testing
     #expect(result.config.keys.left == "a")
     #expect(result.config.keys.closeAll == "c")
     #expect(result.config.keys.right == "l")
+    #expect(result.config.keys.workspaces == ["w": "W", "x": "workspace-x"])
     #expect(result.config.behavior.wrap)
     #expect(!result.config.behavior.confirmCloseAll)
     #expect(result.config.behavior.moveMode == .cycle)
@@ -64,6 +69,26 @@ import Testing
     #expect(result.config.keys.left == KeyBindings.defaults.left)
     #expect(result.config.behavior.moveMode == .directional)
     #expect(result.warnings.count == 2)
+}
+
+@Test func workspaceBindingsRequireSingleCharacterKeysAndWorkspaceNames() throws {
+    let url = try temporaryConfig(
+        """
+        [keys.workspaces]
+        w = " W "
+        long = "Q"
+        x = " "
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.keys.workspaces == ["w": "W"])
+    #expect(result.warnings.count == 2)
+}
+
+@Test func workspaceBindingsAreEmptyByDefault() {
+    #expect(KeyBindings.defaults.workspaces.isEmpty)
+    #expect(GridSpacesConfig.defaults.keys.workspaces.isEmpty)
 }
 
 private func temporaryConfig(_ contents: String) throws -> URL {

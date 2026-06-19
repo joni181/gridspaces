@@ -22,6 +22,7 @@
 - [x] 3.4 Parse behavior toggles (edge wrap; close-all-windows confirmation, default enabled) and expose them to navigation/switching/actions
 - [x] 3.5 Validate configuration, report clear errors, and fall back to defaults per-setting
 - [x] 3.6 Implement `gridspaces reload-config`
+- [x] 3.7 Parse case-insensitive direct workspace bindings from `[keys.workspaces]`
 
 ## 4. Grid model & layout
 
@@ -42,6 +43,7 @@
 - [x] 6.2 Implement confirm (focus highlighted workspace on close) and cancel (close without switching)
 - [x] 6.3 Implement close-all-windows on the highlighted workspace with a default confirmation keypress (toggleable) and tile update
 - [x] 6.4 Implement directional move-to-monitor on the highlighted workspace via `move-workspace-to-monitor --workspace <name> (left|down|up|right)` (no focus change), with a cycle-mode (`next|prev`) alternative and monitor wrap toggle, keeping the grid open and the highlight on the moved workspace, and updating its outline color
+- [x] 6.5 Implement unmodified direct workspace keys that focus the configured workspace and close the grid, with navigation/action precedence
 
 ## 7. CLI & global integration
 
@@ -57,6 +59,6 @@
 
 ## 9. Verification
 
-- [ ] 9.1 Verify each spec scenario manually against the implementation (navigation, focus-on-close, cancel, close-all, move-to-monitor, directional switch, overflow, degradation)
+- [ ] 9.1 Verify each spec scenario manually against the implementation (navigation, direct workspace switching, focus-on-close, cancel, close-all, move-to-monitor, directional switch, overflow, degradation)
 - [x] 9.2 Add automated tests for the grid model (placement, overflow, adjacency, wrap) and config parsing/validation
 - [x] 9.3 Measure idle and on-open resource usage to confirm the lightweight, no-polling goal

@@ -75,6 +75,19 @@ move_down = "shift+j"
 move_up = "shift+k"
 move_right = "shift+l"
 
+[keys.workspaces]
+"1" = "1"
+"2" = "2"
+"3" = "3"
+"4" = "4"
+"5" = "5"
+q = "Q"
+w = "W"
+e = "E"
+a = "A"
+s = "S"
+d = "D"
+
 [behavior]
 wrap = false
 confirm_close_all = true
@@ -85,6 +98,12 @@ monitor_wrap = false
 Use an empty string for a gap in a ragged row. Configured workspace positions are
 always rendered, even when AeroSpace does not currently report them. An occupied
 workspace omitted from the grid appears in a single overflow row.
+
+Entries under `[keys.workspaces]` map unmodified, single-character keys to
+workspace names. These bindings are case-insensitive and switch immediately,
+closing the grid. Navigation and action bindings take precedence if a key
+collides. Workspaces without a direct binding remain available through grid
+navigation and `Enter`.
 
 For stable empty tiles, keep AeroSpace's `persistent-workspaces` aligned with
 the GridSpaces rows. Keyboard-shaped names such as `1 2 3 4 5 / Q W E / A S D`
@@ -123,6 +142,7 @@ and requires no AeroSpace source changes.
 ## In-grid controls
 
 - `h/j/k/l` or arrows: move the highlight without switching
+- configured workspace keys: switch immediately and close the grid
 - `Enter`: focus the highlighted workspace and close
 - `Esc`: close without switching
 - `x`: close all windows in the highlighted workspace; confirmation is on by default

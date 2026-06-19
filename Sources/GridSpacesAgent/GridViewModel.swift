@@ -106,6 +106,13 @@ final class GridViewModel: ObservableObject {
         onRequestClose?()
     }
 
+    func switchDirectly(to workspace: String) {
+        performAction {
+            try AeroSpaceClient().focus(workspace: workspace)
+        }
+        onRequestClose?()
+    }
+
     func cancel() {
         if pendingCloseWorkspace != nil {
             pendingCloseWorkspace = nil

@@ -15,6 +15,7 @@ public struct KeyBindings: Codable, Equatable, Sendable {
     public var moveRight: String
     public var moveNext: String
     public var movePrevious: String
+    public var workspaces: [String: String]
 
     enum CodingKeys: String, CodingKey {
         case left, down, up, right, confirm, cancel
@@ -25,13 +26,15 @@ public struct KeyBindings: Codable, Equatable, Sendable {
         case moveRight = "move_right"
         case moveNext = "move_next"
         case movePrevious = "move_previous"
+        case workspaces
     }
 
     public static let defaults = KeyBindings(
         left: "h", down: "j", up: "k", right: "l",
         confirm: "return", cancel: "escape", closeAll: "x",
         moveLeft: "shift+h", moveDown: "shift+j", moveUp: "shift+k", moveRight: "shift+l",
-        moveNext: "shift+l", movePrevious: "shift+h"
+        moveNext: "shift+l", movePrevious: "shift+h",
+        workspaces: [:]
     )
 }
 
@@ -100,6 +103,7 @@ private struct PartialKeyBindings: Decodable {
     var moveRight: String?
     var moveNext: String?
     var movePrevious: String?
+    var workspaces: [String: String]?
 
     enum CodingKeys: String, CodingKey {
         case left, down, up, right, confirm, cancel
@@ -110,6 +114,7 @@ private struct PartialKeyBindings: Decodable {
         case moveRight = "move_right"
         case moveNext = "move_next"
         case movePrevious = "move_previous"
+        case workspaces
     }
 }
 
@@ -195,6 +200,12 @@ public enum ConfigLoader {
             assign(keys.moveRight, to: &merged.moveRight, name: "keys.move_right", warnings: &warnings)
             assign(keys.moveNext, to: &merged.moveNext, name: "keys.move_next", warnings: &warnings)
             assign(keys.movePrevious, to: &merged.movePrevious, name: "keys.move_previous", warnings: &warnings)
+            if let workspaces = keys.workspaces {
+                merged.workspaces = normalizeWorkspaceBindings(
+                    workspaces,
+                    warnings: &warnings
+                )
+            }
             result.keys = merged
         }
 
@@ -227,5 +238,37 @@ public enum ConfigLoader {
         } else {
             value = normalized
         }
+    }
+
+    private static func normalizeWorkspaceBindings(
+        _ bindings: [String: String],
+        warnings: inout [String]
+    ) -> [String: String] {
+        var normalized: [String: String] = [:]
+
+        for key in bindings.keys.sorted() {
+            guard let workspace = bindings[key] else { continue }
+            let normalizedKey = key.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let normalizedWorkspace = workspace.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard normalizedKey.count == 1 else {
+                warnings.append("keys.workspaces.\(key) must be a single character; ignoring it.")
+                continue
+            }
+            guard !normalizedWorkspace.isEmpty else {
+                warnings.append("keys.workspaces.\(key) must name a workspace; ignoring it.")
+                continue
+            }
+            guard normalized[normalizedKey] == nil else {
+                warnings.append(
+                    "keys.workspaces contains duplicate case-insensitive key \(key); ignoring it."
+                )
+                continue
+            }
+
+            normalized[normalizedKey] = normalizedWorkspace
+        }
+
+        return normalized
     }
 }

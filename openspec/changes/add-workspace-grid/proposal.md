@@ -10,6 +10,7 @@ GridSpaces adds a fast, keyboard-driven visual overview that sits **on top of** 
 - Lay workspaces out in a **2D grid** whose positions are defined in a GridSpaces config file, designed to mirror physical keyboard positions (e.g. `1 2 3 4 5` / `Q W E` / `A S D`).
 - Surface any workspace that holds windows but is **not** placed in the configured grid in an appended **overflow region**, so no windows are ever hidden.
 - Provide **in-grid keyboard navigation** (default `hjkl`, remappable) that moves a **highlight** without switching; closing the grid focuses the highlighted workspace, and `Esc` cancels without switching.
+- Provide configurable **direct workspace keys** inside the grid that immediately focus the assigned workspace and close the overview.
 - Provide **in-grid workspace actions**: close all windows in the highlighted workspace, and move the highlighted workspace to an adjacent monitor (directional). Each tile shows a **per-monitor colored outline**.
 - Provide **global directional workspace switching** outside the grid: a headless, popup-free 2D switch (up/down/left/right) of the focused workspace, like macOS `Ctrl+Arrow` but in two dimensions.
 - Read AeroSpace state on demand via its CLI (`list-workspaces`, `list-windows --json`, `list-monitors`) — **no polling**, refresh only when the grid opens or a command runs.
@@ -26,6 +27,7 @@ Out of scope for this change (future work): live window thumbnails (currently ap
 - `aerospace-integration`: Reading workspace/window/monitor state from the AeroSpace CLI and executing AeroSpace actions on GridSpaces' behalf, including required AeroSpace config additions and single-monitor degradation.
 - `workspace-grid-overview`: The popup grid window — layout rules (configured grid, overflow region, ragged rows/empty cells), tile rendering with app icons, per-monitor outline colors, and open behavior.
 - `grid-navigation`: In-grid keyboard navigation and selection — highlight movement (default `hjkl`), edge-wrap behavior, focus-the-highlight on close, and `Esc` to cancel.
+- `direct-workspace-switching`: Configurable, case-insensitive in-grid keys that immediately focus their assigned workspace and close the overview.
 - `workspace-actions`: Operations invoked on the highlighted workspace from within the grid — close all windows, and move the workspace to an adjacent monitor directionally.
 - `global-directional-switching`: Headless (popup-free) 2D directional switching of the focused workspace, driven by AeroSpace bindings.
 - `configuration`: The GridSpaces TOML dotfile — grid layout, remappable keybindings, and behavior toggles, plus discovery/reload semantics.

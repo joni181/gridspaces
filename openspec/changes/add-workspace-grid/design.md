@@ -46,7 +46,14 @@ Open-grid and headless directional switching are triggered by AeroSpace `exec-an
 
 - **Why:** Reuses AeroSpace's hotkey engine; avoids keybinding conflicts; no native global hotkey registration; single place for users to manage global keys. Confirmed acceptable as long as AeroSpace source is untouched.
 - **Alternatives considered:** Native global hotkeys in GridSpaces (conflict risk, duplicate config surface); hybrid (more moving parts).
-- **In-grid keys are different:** While the grid window is key/focused, GridSpaces handles `hjkl`, arrows, confirm, cancel, and move-to-monitor **natively** in-app (not via AeroSpace), since the popup owns keyboard focus.
+- **In-grid keys are different:** While the grid window is key/focused, GridSpaces handles `hjkl`, arrows, direct workspace selection, confirm, cancel, and move-to-monitor **natively** in-app (not via AeroSpace), since the popup owns keyboard focus.
+
+### Decision: Direct workspace keys use explicit config mappings
+
+The optional `[keys.workspaces]` table maps unmodified single-character keys to workspace names. Matching is case-insensitive, and existing navigation/action bindings take precedence over collisions. A match focuses the configured workspace through AeroSpace and immediately closes the grid.
+
+- **Why:** Explicit mappings keep keyboard behavior configurable without assuming that every workspace name is a usable shortcut. They also allow a shortcut and workspace name to differ.
+- **Alternative considered:** Deriving shortcuts from workspace names or grid positions. Rejected because it creates implicit bindings and ambiguous behavior for multi-character names.
 
 ### Decision: TOML config at `~/.config/gridspaces/gridspaces.toml`
 

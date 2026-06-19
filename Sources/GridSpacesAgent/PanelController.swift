@@ -111,16 +111,25 @@ final class PanelController: NSObject, NSWindowDelegate {
         switch token {
         case viewModel.config.keys.confirm:
             viewModel.confirmSelection()
+            return
         case viewModel.config.keys.cancel:
             viewModel.cancel()
+            return
         case viewModel.config.keys.closeAll:
             viewModel.requestCloseAll()
+            return
         default:
             if event.keyCode == 36 || event.keyCode == 76 {
                 viewModel.confirmSelection()
+                return
             } else if event.keyCode == 53 {
                 viewModel.cancel()
+                return
             }
+        }
+
+        if let workspace = directWorkspace(token: token, event: event) {
+            viewModel.switchDirectly(to: workspace)
         }
     }
 
@@ -143,6 +152,16 @@ final class PanelController: NSObject, NSWindowDelegate {
         if token == viewModel.config.keys.moveUp || (event.keyCode == 126 && event.modifierFlags.contains(.shift)) { return .up }
         if token == viewModel.config.keys.moveRight || (event.keyCode == 124 && event.modifierFlags.contains(.shift)) { return .right }
         return nil
+    }
+
+    private func directWorkspace(token: String, event: NSEvent) -> String? {
+        let disallowedModifiers: NSEvent.ModifierFlags = [
+            .command, .control, .option, .shift, .function,
+        ]
+        guard event.modifierFlags.intersection(disallowedModifiers).isEmpty else {
+            return nil
+        }
+        return viewModel.config.keys.workspaces[token]
     }
 
     private func keyToken(_ event: NSEvent) -> String {
