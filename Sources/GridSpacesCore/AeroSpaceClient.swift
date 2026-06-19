@@ -24,8 +24,12 @@ public final class AeroSpaceClient {
     }
 
     public func snapshot() throws -> AeroSpaceSnapshot {
-        let workspaceNames = try listWorkspaces()
         let focused = try focusedWorkspace()
+        return try snapshot(focusedWorkspace: focused)
+    }
+
+    public func snapshot(focusedWorkspace focused: String) throws -> AeroSpaceSnapshot {
+        let workspaceNames = try listWorkspaces()
         let monitors = try listMonitors()
         let monitorMapping = try workspaceMonitorMapping()
 

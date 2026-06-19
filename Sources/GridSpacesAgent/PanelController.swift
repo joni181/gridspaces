@@ -7,6 +7,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     private let viewModel = GridViewModel()
     private var panel: NSPanel?
     private var keyMonitor: Any?
+    private var openRequestID: UInt = 0
 
     override init() {
         super.init()
@@ -38,14 +39,19 @@ final class PanelController: NSObject, NSWindowDelegate {
             panel = newPanel
         }
 
-        viewModel.refresh()
-        panel?.center()
-        panel?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        installKeyMonitor()
+        openRequestID &+= 1
+        let requestID = openRequestID
+        viewModel.refresh { [weak self] in
+            guard let self, self.openRequestID == requestID else { return }
+            self.panel?.center()
+            self.panel?.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            self.installKeyMonitor()
+        }
     }
 
     func close() {
+        openRequestID &+= 1
         panel?.orderOut(nil)
         removeKeyMonitor()
     }

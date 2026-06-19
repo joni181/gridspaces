@@ -15,6 +15,7 @@ final class GridViewModel: ObservableObject {
     private(set) var config = GridSpacesConfig.defaults
     let iconResolver = AppIconResolver()
     var onRequestClose: (() -> Void)?
+    private var refreshID: UInt = 0
 
     func reloadConfiguration() {
         let loaded = ConfigLoader.load()
@@ -24,17 +25,44 @@ final class GridViewModel: ObservableObject {
         }
     }
 
-    func refresh() {
+    func refresh(onFocusedWorkspaceReady: (() -> Void)? = nil) {
+        refreshID &+= 1
+        let requestID = refreshID
         reloadConfiguration()
         isLoading = true
         errorMessage = nil
+        highlightedWorkspace = nil
         let config = config
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let client: AeroSpaceClient
+            let focusedWorkspace: String
             do {
-                let snapshot = try AeroSpaceClient().snapshot()
+                client = try AeroSpaceClient()
+                focusedWorkspace = try client.focusedWorkspace()
+            } catch {
+                DispatchQueue.main.async {
+                    guard let self, self.refreshID == requestID else { return }
+                    self.errorMessage = error.localizedDescription
+                    self.isLoading = false
+                    onFocusedWorkspaceReady?()
+                }
+                return
+            }
+
+            DispatchQueue.main.async {
+                guard let self, self.refreshID == requestID else { return }
+                self.focusedWorkspace = focusedWorkspace
+                self.highlightedWorkspace = self.model.tile(named: focusedWorkspace) != nil
+                    ? focusedWorkspace
+                    : nil
+                onFocusedWorkspaceReady?()
+            }
+
+            do {
+                let snapshot = try client.snapshot(focusedWorkspace: focusedWorkspace)
                 let model = GridModel(config: config, states: snapshot.workspaces)
                 DispatchQueue.main.async {
-                    guard let self else { return }
+                    guard let self, self.refreshID == requestID else { return }
                     self.model = model
                     self.monitors = snapshot.monitors
                     self.focusedWorkspace = snapshot.focusedWorkspace
@@ -45,8 +73,9 @@ final class GridViewModel: ObservableObject {
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self?.errorMessage = error.localizedDescription
-                    self?.isLoading = false
+                    guard let self, self.refreshID == requestID else { return }
+                    self.errorMessage = error.localizedDescription
+                    self.isLoading = false
                 }
             }
         }
