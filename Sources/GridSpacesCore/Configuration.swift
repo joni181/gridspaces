@@ -73,8 +73,9 @@ public struct GridSpacesConfig: Equatable, Sendable {
     public static let defaults = GridSpacesConfig(
         grid: [
             ["1", "2", "3", "4", "5"],
-            ["Q", "W", "E"],
-            ["A", "S", "D"],
+            ["Q", "W", "E", "R", "T"],
+            ["A", "S", "D", "F", "G"],
+            ["Y", "X", "C", "V", "B"],
         ]
     )
 }

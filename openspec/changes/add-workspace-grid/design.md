@@ -7,7 +7,7 @@ Constraints discovered from the target environment:
 - AeroSpace exposes everything GridSpaces needs over its CLI: `list-workspaces --all/--focused [--json]`, `list-windows --workspace <n> --json`, `list-monitors [--json]`, `workspace <n>`, `move-workspace-to-monitor`, and window-closing commands. Bindings can run arbitrary commands via `exec-and-forget`.
 - AeroSpace has **no event stream** for window close/move, so push-based state is not generally available; GridSpaces reads on demand instead.
 - AeroSpace workspaces are a **flat named set** (persistent workspaces + any workspace with windows). There is no native 2D topology — GridSpaces introduces it via config.
-- The reference user's `persistent-workspaces` already forms a keyboard-shaped grid (`1 2 3 4 5` / `Q W E` / `A S D`), which motivates the keyboard-position layout convention.
+- The reference user's `persistent-workspaces` forms a keyboard-shaped grid (`1 2 3 4 5` / `Q W E R T` / `A S D F G` / `Y X C V B`), which motivates the keyboard-position layout convention.
 - The reference machine currently has a single monitor, so multi-monitor features must degrade to no-ops/single color.
 
 Stakeholders: AeroSpace users who want a fast, keyboard-first workspace overview and 2D directional switching.

@@ -7,7 +7,7 @@ GridSpaces adds a fast, keyboard-driven visual overview that sits **on top of** 
 ## What Changes
 
 - Introduce a native macOS app (`Swift` + `SwiftUI`/`AppKit`) that renders a **popup grid overview** of all known AeroSpace workspaces, each tile showing the **app icons** of its open windows.
-- Lay workspaces out in a **2D grid** whose positions are defined in a GridSpaces config file, designed to mirror physical keyboard positions (e.g. `1 2 3 4 5` / `Q W E` / `A S D`).
+- Lay workspaces out in a **2D grid** whose positions are defined in a GridSpaces config file, designed to mirror physical keyboard positions (e.g. `1 2 3 4 5` / `Q W E R T` / `A S D F G` / `Y X C V B`).
 - Surface any workspace that holds windows but is **not** placed in the configured grid in an appended **overflow region**, so no windows are ever hidden.
 - Provide **in-grid keyboard navigation** (default `hjkl`, remappable) that moves a **highlight** without switching; closing the grid focuses the highlighted workspace, and `Esc` cancels without switching.
 - Provide configurable **direct workspace keys** inside the grid that immediately focus the assigned workspace and close the overview.

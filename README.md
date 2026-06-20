@@ -58,8 +58,9 @@ Example:
 [grid]
 rows = [
   ["1", "2", "3", "4", "5"],
-  ["Q", "W", "E"],
-  ["A", "S", "D"],
+  ["Q", "W", "E", "R", "T"],
+  ["A", "S", "D", "F", "G"],
+  ["Y", "X", "C", "V", "B"],
 ]
 
 [keys]
@@ -106,8 +107,8 @@ collides. Workspaces without a direct binding remain available through grid
 navigation and `Enter`.
 
 For stable empty tiles, keep AeroSpace's `persistent-workspaces` aligned with
-the GridSpaces rows. Keyboard-shaped names such as `1 2 3 4 5 / Q W E / A S D`
-work particularly well.
+the GridSpaces rows. Keyboard-shaped names such as
+`1 2 3 4 5 / Q W E R T / A S D F G / Y X C V B` work particularly well.
 
 ## CLI
 

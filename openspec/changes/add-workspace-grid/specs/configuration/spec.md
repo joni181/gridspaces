@@ -20,7 +20,7 @@ The configuration SHALL define the 2D grid layout as an ordered list of rows, wh
 
 #### Scenario: Declaring a keyboard-style layout
 
-- **WHEN** the configuration declares rows such as `["1","2","3","4","5"]`, `["Q","W","E"]`, `["A","S","D"]`
+- **WHEN** the configuration declares rows `["1","2","3","4","5"]`, `["Q","W","E","R","T"]`, `["A","S","D","F","G"]`, `["Y","X","C","V","B"]`
 - **THEN** GridSpaces places those workspaces at the corresponding `(row, column)` positions
 
 #### Scenario: Workspace listed in the layout but unknown to AeroSpace
