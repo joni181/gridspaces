@@ -43,7 +43,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         let requestID = openRequestID
         viewModel.refresh { [weak self] in
             guard let self, self.openRequestID == requestID else { return }
-            self.panel?.center()
+            self.positionPanelAtPointer()
             self.panel?.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             self.installKeyMonitor()
@@ -89,6 +89,28 @@ final class PanelController: NSObject, NSWindowDelegate {
             NSEvent.removeMonitor(keyMonitor)
             self.keyMonitor = nil
         }
+    }
+
+    private func positionPanelAtPointer() {
+        guard let panel else { return }
+
+        let screens = NSScreen.screens
+        let mainScreenIndex = NSScreen.main.flatMap { mainScreen in
+            screens.firstIndex(where: { $0 === mainScreen })
+        }
+        guard let targetIndex = PopupPlacement.targetScreenIndex(
+            pointerLocation: NSEvent.mouseLocation,
+            screenFrames: screens.map(\.frame),
+            mainScreenIndex: mainScreenIndex
+        ) else {
+            return
+        }
+
+        let origin = PopupPlacement.centeredOrigin(
+            windowSize: panel.frame.size,
+            visibleFrame: screens[targetIndex].visibleFrame
+        )
+        panel.setFrameOrigin(origin)
     }
 
     private func handle(_ event: NSEvent) {
