@@ -17,7 +17,9 @@ struct GridView: View {
                 workspaceGrid
             }
         }
-        .padding(20)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 20)
+        .padding(.top, -14)
         .background(.ultraThinMaterial)
         .fixedSize()
     }
