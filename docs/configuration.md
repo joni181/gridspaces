@@ -36,6 +36,32 @@ The default shown above represents a QWERTZ keyboard layout. If you are using QW
 
 ---
 
+## `[appearance]`
+
+### `monitor_colors`
+
+An ordered array of colors used for workspace tile outlines. Each value must be a six-digit RGB hex code in `#RRGGBB` form. Hex digits are case-insensitive.
+
+The first color is assigned to the first monitor reported by AeroSpace, the second color to the second monitor, and so on. If more monitors are connected than there are configured colors, GridSpaces cycles through the array. Configure at least one distinct color per monitor if every monitor should have a unique outline.
+
+**Default:**
+
+```toml
+[appearance]
+monitor_colors = [
+  "#32ADE6", # cyan
+  "#FF9500", # orange
+  "#34C759", # green
+  "#FF2D55", # pink
+  "#AF52DE", # purple
+  "#FFCC00", # yellow
+]
+```
+
+The setting is optional. If it is omitted, GridSpaces uses the default palette above. If the array is empty or any entry is invalid, GridSpaces reports a configuration warning and falls back to the complete default palette.
+
+---
+
 ## `[keys]`
 
 Maps hotkey combinations to commands. The TOML key is the hotkey and the value is the command name:

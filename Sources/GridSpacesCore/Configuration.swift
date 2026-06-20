@@ -59,15 +59,45 @@ public struct Behavior: Codable, Equatable, Sendable {
     )
 }
 
+public struct Appearance: Codable, Equatable, Sendable {
+    public var monitorColors: [String]
+
+    public init(monitorColors: [String]) {
+        self.monitorColors = monitorColors
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case monitorColors = "monitor_colors"
+    }
+
+    public static let defaults = Appearance(
+        monitorColors: [
+            "#32ADE6",
+            "#FF9500",
+            "#34C759",
+            "#FF2D55",
+            "#AF52DE",
+            "#FFCC00",
+        ]
+    )
+}
+
 public struct GridSpacesConfig: Equatable, Sendable {
     public var grid: [[String?]]
     public var keys: KeyBindings
     public var behavior: Behavior
+    public var appearance: Appearance
 
-    public init(grid: [[String?]], keys: KeyBindings = .defaults, behavior: Behavior = .defaults) {
+    public init(
+        grid: [[String?]],
+        keys: KeyBindings = .defaults,
+        behavior: Behavior = .defaults,
+        appearance: Appearance = .defaults
+    ) {
         self.grid = grid
         self.keys = keys
         self.behavior = behavior
+        self.appearance = appearance
     }
 
     public static let defaults = GridSpacesConfig(
@@ -84,6 +114,7 @@ private struct ConfigDocument: Decodable {
     var grid: GridDocument?
     var keys: PartialKeySection?
     var behavior: PartialBehavior?
+    var appearance: PartialAppearance?
 }
 
 private struct GridDocument: Decodable {
@@ -129,6 +160,14 @@ private struct PartialBehavior: Decodable {
         case confirmCloseAll = "confirm_close_all"
         case moveMode = "move_mode"
         case monitorWrap = "monitor_wrap"
+    }
+}
+
+private struct PartialAppearance: Decodable {
+    var monitorColors: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case monitorColors = "monitor_colors"
     }
 }
 
@@ -251,7 +290,33 @@ public enum ConfigLoader {
             }
         }
 
+        if let monitorColors = document.appearance?.monitorColors {
+            if let normalized = normalizeMonitorColors(monitorColors) {
+                result.appearance.monitorColors = normalized
+            } else {
+                warnings.append(
+                    "appearance.monitor_colors must contain at least one color, "
+                        + "with every color in #RRGGBB format; using the default monitor colors."
+                )
+            }
+        }
+
         return ConfigLoadResult(config: result, warnings: warnings)
+    }
+
+    private static func normalizeMonitorColors(_ colors: [String]) -> [String]? {
+        guard !colors.isEmpty else { return nil }
+
+        var normalized: [String] = []
+        normalized.reserveCapacity(colors.count)
+        for color in colors {
+            let trimmed = color.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmed.count == 7, trimmed.first == "#" else { return nil }
+            let digits = trimmed.dropFirst()
+            guard digits.allSatisfy(\.isHexDigit) else { return nil }
+            normalized.append(trimmed.uppercased())
+        }
+        return normalized
     }
 
     private static func normalizeWorkspaceBindings(

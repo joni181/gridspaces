@@ -17,6 +17,11 @@ final class GridViewModel: ObservableObject {
     var onRequestClose: (() -> Void)?
     private var refreshID: UInt = 0
 
+    init(config: GridSpacesConfig = .defaults) {
+        self.config = config
+        model = GridModel(config: config, states: [])
+    }
+
     func reloadConfiguration() {
         let loaded = ConfigLoader.load()
         config = loaded.config
@@ -163,11 +168,18 @@ final class GridViewModel: ObservableObject {
     }
 
     func monitorColor(for id: Int?) -> Color {
-        let palette: [Color] = [.cyan, .orange, .green, .pink, .purple, .yellow]
+        Color(hexRGB: monitorColorHex(for: id))
+    }
+
+    func monitorColorHex(for id: Int?) -> String {
+        let configuredPalette = config.appearance.monitorColors
+        let palette = configuredPalette.isEmpty
+            ? Appearance.defaults.monitorColors
+            : configuredPalette
         guard monitors.count > 1, let id,
               let index = monitors.firstIndex(where: { $0.id == id })
         else {
-            return .cyan
+            return palette[0]
         }
         return palette[index % palette.count]
     }
@@ -193,5 +205,19 @@ final class GridViewModel: ObservableObject {
                 }
             }
         }
+    }
+}
+
+extension Color {
+    init(hexRGB: String) {
+        let digits = hexRGB.dropFirst()
+        let value = UInt64(digits, radix: 16)!
+        self.init(
+            .sRGB,
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255,
+            opacity: 1
+        )
     }
 }

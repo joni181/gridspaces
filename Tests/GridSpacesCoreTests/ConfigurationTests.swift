@@ -22,6 +22,20 @@ import Testing
     )
 }
 
+@Test func defaultAppearanceUsesExistingMonitorPalette() {
+    #expect(
+        Appearance.defaults.monitorColors == [
+            "#32ADE6",
+            "#FF9500",
+            "#34C759",
+            "#FF2D55",
+            "#AF52DE",
+            "#FFCC00",
+        ]
+    )
+    #expect(GridSpacesConfig.defaults.appearance == .defaults)
+}
+
 @Test func parsesGridKeysAndBehavior() throws {
     let url = try temporaryConfig(
         """
@@ -41,6 +55,9 @@ import Testing
         confirm_close_all = false
         move_mode = "cycle"
         monitor_wrap = true
+
+        [appearance]
+        monitor_colors = ["#112233", "#aBcDeF"]
         """
     )
     let result = ConfigLoader.load(from: url)
@@ -54,7 +71,44 @@ import Testing
     #expect(!result.config.behavior.confirmCloseAll)
     #expect(result.config.behavior.moveMode == .cycle)
     #expect(result.config.behavior.monitorWrap)
+    #expect(result.config.appearance.monitorColors == ["#112233", "#ABCDEF"])
     #expect(result.warnings.isEmpty)
+}
+
+@Test func omittedMonitorColorsUseDefaults() throws {
+    let url = try temporaryConfig("[behavior]\nwrap = true")
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.appearance == .defaults)
+    #expect(result.warnings.isEmpty)
+}
+
+@Test func emptyMonitorColorsFallBackToDefaults() throws {
+    let url = try temporaryConfig(
+        """
+        [appearance]
+        monitor_colors = []
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.appearance == .defaults)
+    #expect(result.warnings.count == 1)
+    #expect(result.warnings[0].contains("appearance.monitor_colors"))
+}
+
+@Test func malformedMonitorColorFallsBackToCompleteDefaultPalette() throws {
+    let url = try temporaryConfig(
+        """
+        [appearance]
+        monitor_colors = ["#112233", "#FFF", "orange"]
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.appearance == .defaults)
+    #expect(result.warnings.count == 1)
+    #expect(result.warnings[0].contains("#RRGGBB"))
 }
 
 @Test func invalidDocumentFallsBackToDefaults() throws {

@@ -6,6 +6,9 @@ rows = [
   ["Y", "X", "C", "V", "B"],
 ]
 
+[appearance]
+monitor_colors = ["#32ADE6", "#FF9500", "#34C759", "#FF2D55", "#AF52DE", "#FFCC00"]
+
 [keys]
 h = 'left'
 j = 'down'
