@@ -181,19 +181,20 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func directWorkspace(token: String, event: NSEvent) -> String? {
-        let disallowedModifiers: NSEvent.ModifierFlags = [
-            .command, .control, .option, .shift, .function,
-        ]
-        guard event.modifierFlags.intersection(disallowedModifiers).isEmpty else {
-            return nil
-        }
         return viewModel.config.keys.workspaces[token]
     }
 
     private func keyToken(_ event: NSEvent) -> String {
         if event.keyCode == 36 || event.keyCode == 76 { return "return" }
         if event.keyCode == 53 { return "escape" }
-        let value = (event.charactersIgnoringModifiers ?? "").lowercased()
-        return event.modifierFlags.contains(.shift) ? "shift+\(value)" : value
+        let key = (event.charactersIgnoringModifiers ?? "").lowercased()
+        let flags = event.modifierFlags
+        var parts: [String] = []
+        if flags.contains(.command) { parts.append("cmd") }
+        if flags.contains(.option) { parts.append("alt") }
+        if flags.contains(.control) { parts.append("ctrl") }
+        if flags.contains(.shift) { parts.append("shift") }
+        parts.append(key)
+        return parts.joined(separator: "-")
     }
 }

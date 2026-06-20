@@ -32,8 +32,8 @@ public struct KeyBindings: Codable, Equatable, Sendable {
     public static let defaults = KeyBindings(
         left: "h", down: "j", up: "k", right: "l",
         confirm: "return", cancel: "escape", closeAll: "x",
-        moveLeft: "shift+h", moveDown: "shift+j", moveUp: "shift+k", moveRight: "shift+l",
-        moveNext: "shift+l", movePrevious: "shift+h",
+        moveLeft: "shift-h", moveDown: "shift-j", moveUp: "shift-k", moveRight: "shift-l",
+        moveNext: "shift-l", movePrevious: "shift-h",
         workspaces: [:]
     )
 }
@@ -81,7 +81,7 @@ public struct GridSpacesConfig: Equatable, Sendable {
 
 private struct ConfigDocument: Decodable {
     var grid: GridDocument?
-    var keys: PartialKeyBindings?
+    var keys: PartialKeySection?
     var behavior: PartialBehavior?
 }
 
@@ -89,32 +89,31 @@ private struct GridDocument: Decodable {
     var rows: [[String?]]?
 }
 
-private struct PartialKeyBindings: Decodable {
-    var left: String?
-    var down: String?
-    var up: String?
-    var right: String?
-    var confirm: String?
-    var cancel: String?
-    var closeAll: String?
-    var moveLeft: String?
-    var moveDown: String?
-    var moveUp: String?
-    var moveRight: String?
-    var moveNext: String?
-    var movePrevious: String?
+// Decodes the [keys] table: free-form hotkey→command bindings plus the [keys.workspaces] subtable.
+private struct PartialKeySection: Decodable {
+    var bindings: [String: String]
     var workspaces: [String: String]?
 
-    enum CodingKeys: String, CodingKey {
-        case left, down, up, right, confirm, cancel
-        case closeAll = "close_all"
-        case moveLeft = "move_left"
-        case moveDown = "move_down"
-        case moveUp = "move_up"
-        case moveRight = "move_right"
-        case moveNext = "move_next"
-        case movePrevious = "move_previous"
-        case workspaces
+    private struct AnyCodingKey: CodingKey {
+        var stringValue: String
+        var intValue: Int? { nil }
+        init(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { nil }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: AnyCodingKey.self)
+        workspaces = try container.decodeIfPresent(
+            [String: String].self,
+            forKey: AnyCodingKey(stringValue: "workspaces")
+        )
+        var bindings: [String: String] = [:]
+        for key in container.allKeys where key.stringValue != "workspaces" {
+            if let value = try? container.decode(String.self, forKey: key) {
+                bindings[key.stringValue] = value
+            }
+        }
+        self.bindings = bindings
     }
 }
 
@@ -165,6 +164,22 @@ public enum ConfigLoader {
         }
     }
 
+    private static let commandToKeyPath: [String: WritableKeyPath<KeyBindings, String>] = [
+        "left": \.left,
+        "down": \.down,
+        "up": \.up,
+        "right": \.right,
+        "confirm": \.confirm,
+        "cancel": \.cancel,
+        "close-all": \.closeAll,
+        "move-left": \.moveLeft,
+        "move-down": \.moveDown,
+        "move-up": \.moveUp,
+        "move-right": \.moveRight,
+        "move-next": \.moveNext,
+        "move-previous": \.movePrevious,
+    ]
+
     private static func merge(_ document: ConfigDocument) -> ConfigLoadResult {
         var result = GridSpacesConfig.defaults
         var warnings: [String] = []
@@ -185,26 +200,39 @@ public enum ConfigLoader {
             }
         }
 
-        if let keys = document.keys {
+        if let section = document.keys {
             var merged = KeyBindings.defaults
-            assign(keys.left, to: &merged.left, name: "keys.left", warnings: &warnings)
-            assign(keys.down, to: &merged.down, name: "keys.down", warnings: &warnings)
-            assign(keys.up, to: &merged.up, name: "keys.up", warnings: &warnings)
-            assign(keys.right, to: &merged.right, name: "keys.right", warnings: &warnings)
-            assign(keys.confirm, to: &merged.confirm, name: "keys.confirm", warnings: &warnings)
-            assign(keys.cancel, to: &merged.cancel, name: "keys.cancel", warnings: &warnings)
-            assign(keys.closeAll, to: &merged.closeAll, name: "keys.close_all", warnings: &warnings)
-            assign(keys.moveLeft, to: &merged.moveLeft, name: "keys.move_left", warnings: &warnings)
-            assign(keys.moveDown, to: &merged.moveDown, name: "keys.move_down", warnings: &warnings)
-            assign(keys.moveUp, to: &merged.moveUp, name: "keys.move_up", warnings: &warnings)
-            assign(keys.moveRight, to: &merged.moveRight, name: "keys.move_right", warnings: &warnings)
-            assign(keys.moveNext, to: &merged.moveNext, name: "keys.move_next", warnings: &warnings)
-            assign(keys.movePrevious, to: &merged.movePrevious, name: "keys.move_previous", warnings: &warnings)
-            if let workspaces = keys.workspaces {
-                merged.workspaces = normalizeWorkspaceBindings(
-                    workspaces,
-                    warnings: &warnings
-                )
+            var seenHotkeys: Set<String> = []
+
+            for hotkey in section.bindings.keys.sorted() {
+                guard let command = section.bindings[hotkey] else { continue }
+                let normalizedHotkey = hotkey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                let normalizedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+                if normalizedHotkey.isEmpty {
+                    warnings.append("[keys]: hotkey cannot be empty; ignoring command '\(command)'.")
+                    continue
+                }
+                if normalizedHotkey.contains("+") {
+                    let corrected = normalizedHotkey.replacingOccurrences(of: "+", with: "-")
+                    warnings.append("[keys] '\(hotkey)': use '-' as modifier separator (e.g. '\(corrected)').")
+                    continue
+                }
+                if seenHotkeys.contains(normalizedHotkey) {
+                    warnings.append("[keys] '\(hotkey)': duplicate hotkey; ignoring.")
+                    continue
+                }
+                guard let keyPath = commandToKeyPath[normalizedCommand] else {
+                    warnings.append("[keys] '\(hotkey)': unknown command '\(command)'; ignoring.")
+                    continue
+                }
+
+                seenHotkeys.insert(normalizedHotkey)
+                merged[keyPath: keyPath] = normalizedHotkey
+            }
+
+            if let workspaces = section.workspaces {
+                merged.workspaces = normalizeWorkspaceBindings(workspaces, warnings: &warnings)
             }
             result.keys = merged
         }
@@ -225,47 +253,37 @@ public enum ConfigLoader {
         return ConfigLoadResult(config: result, warnings: warnings)
     }
 
-    private static func assign(
-        _ candidate: String?,
-        to value: inout String,
-        name: String,
-        warnings: inout [String]
-    ) {
-        guard let candidate else { return }
-        let normalized = candidate.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if normalized.isEmpty {
-            warnings.append("\(name) cannot be empty; using \(value).")
-        } else {
-            value = normalized
-        }
-    }
-
     private static func normalizeWorkspaceBindings(
         _ bindings: [String: String],
         warnings: inout [String]
     ) -> [String: String] {
         var normalized: [String: String] = [:]
+        var seenHotkeys: Set<String> = []
 
         for key in bindings.keys.sorted() {
             guard let workspace = bindings[key] else { continue }
             let normalizedKey = key.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             let normalizedWorkspace = workspace.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            guard normalizedKey.count == 1 else {
-                warnings.append("keys.workspaces.\(key) must be a single character; ignoring it.")
+            guard !normalizedKey.isEmpty else {
+                warnings.append("keys.workspaces: hotkey cannot be empty; ignoring.")
+                continue
+            }
+            if normalizedKey.contains("+") {
+                let corrected = normalizedKey.replacingOccurrences(of: "+", with: "-")
+                warnings.append("[keys.workspaces] '\(key)': use '-' as modifier separator (e.g. '\(corrected)').")
                 continue
             }
             guard !normalizedWorkspace.isEmpty else {
-                warnings.append("keys.workspaces.\(key) must name a workspace; ignoring it.")
+                warnings.append("keys.workspaces '\(key)' must name a workspace; ignoring it.")
                 continue
             }
-            guard normalized[normalizedKey] == nil else {
-                warnings.append(
-                    "keys.workspaces contains duplicate case-insensitive key \(key); ignoring it."
-                )
+            guard !seenHotkeys.contains(normalizedKey) else {
+                warnings.append("[keys.workspaces] '\(key)': duplicate hotkey; ignoring.")
                 continue
             }
 
+            seenHotkeys.insert(normalizedKey)
             normalized[normalizedKey] = normalizedWorkspace
         }
 

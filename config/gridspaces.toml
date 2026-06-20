@@ -7,38 +7,38 @@ rows = [
 ]
 
 [keys]
-left = "h"
-down = "j"
-up = "k"
-right = "l"
-confirm = "return"
-cancel = "escape"
-close_all = "x"
-move_left = "shift+h"
-move_down = "shift+j"
-move_up = "shift+k"
-move_right = "shift+l"
+h = 'left'
+j = 'down'
+k = 'up'
+l = 'right'
+return = 'confirm'
+escape = 'cancel'
+x = 'close-all'
+shift-h = 'move-left'
+shift-j = 'move-down'
+shift-k = 'move-up'
+shift-l = 'move-right'
 
 [keys.workspaces]
-"1" = "1"
-"2" = "2"
-"3" = "3"
-"4" = "4"
-"5" = "5"
-q = "Q"
-w = "W"
-e = "E"
-r = "R"
-t = "T"
-a = "A"
-s = "S"
-d = "D"
-f = "F"
-g = "G"
-y = "Y"
-x = "X"
-c = "C"
-v = "V"
+1 = '1'
+2 = '2'
+3 = '3'
+4 = '4'
+5 = '5'
+q = 'Q'
+w = 'W'
+e = 'E'
+r = 'R'
+t = 'T'
+a = 'A'
+s = 'S'
+d = 'D'
+f = 'F'
+g = 'G'
+y = 'Y'
+x = 'X'
+c = 'C'
+v = 'V'
 
 
 [behavior]

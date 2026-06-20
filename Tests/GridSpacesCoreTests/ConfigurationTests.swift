@@ -18,12 +18,12 @@ import Testing
         rows = [["1", "", "3"], ["Q"]]
 
         [keys]
-        left = "a"
-        close_all = "c"
+        a = 'left'
+        c = 'close-all'
 
         [keys.workspaces]
-        w = "W"
-        X = "workspace-x"
+        w = 'W'
+        x = 'workspace-x'
 
         [behavior]
         wrap = true
@@ -58,7 +58,7 @@ import Testing
     let url = try temporaryConfig(
         """
         [keys]
-        left = ""
+        shift-h = 'move-left'
 
         [behavior]
         move_mode = "teleport"
@@ -66,29 +66,120 @@ import Testing
     )
     let result = ConfigLoader.load(from: url)
 
-    #expect(result.config.keys.left == KeyBindings.defaults.left)
+    #expect(result.config.keys.moveLeft == "shift-h")
     #expect(result.config.behavior.moveMode == .directional)
-    #expect(result.warnings.count == 2)
+    #expect(result.warnings.count == 1)
 }
 
-@Test func workspaceBindingsRequireSingleCharacterKeysAndWorkspaceNames() throws {
+@Test func plusSeparatorEmitsWarningAndIsSkipped() throws {
+    let url = try temporaryConfig(
+        """
+        [keys]
+        "shift+h" = 'move-left'
+        j = 'down'
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.keys.moveLeft == KeyBindings.defaults.moveLeft)
+    #expect(result.config.keys.down == "j")
+    #expect(result.warnings.count == 1)
+    #expect(result.warnings[0].contains("shift+h"))
+    #expect(result.warnings[0].contains("shift-h"))
+}
+
+@Test func unknownCommandEmitsWarning() throws {
+    let url = try temporaryConfig(
+        """
+        [keys]
+        h = 'teleport'
+        j = 'down'
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.keys.left == KeyBindings.defaults.left)
+    #expect(result.config.keys.down == "j")
+    #expect(result.warnings.count == 1)
+    #expect(result.warnings[0].contains("teleport"))
+}
+
+@Test func duplicateHotkeyEmitsWarning() throws {
+    // H and h normalize to the same hotkey; the second one (sorted) is a duplicate.
+    let url = try temporaryConfig(
+        """
+        [keys]
+        H = 'right'
+        h = 'left'
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.keys.right == "h" || result.config.keys.left == "h")
+    #expect(result.warnings.count == 1)
+    #expect(result.warnings[0].contains("duplicate"))
+}
+
+@Test func multiModifierHotkeyIsAccepted() throws {
+    let url = try temporaryConfig(
+        """
+        [keys]
+        ctrl-shift-j = 'move-down'
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.keys.moveDown == "ctrl-shift-j")
+    #expect(result.warnings.isEmpty)
+}
+
+@Test func workspaceBindingsAcceptModifierKeys() throws {
     let url = try temporaryConfig(
         """
         [keys.workspaces]
-        w = " W "
-        long = "Q"
-        x = " "
+        w = 'W'
+        shift-1 = 'workspace-1'
+        x = ''
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.keys.workspaces == ["w": "W", "shift-1": "workspace-1"])
+    #expect(result.warnings.count == 1)
+}
+
+@Test func workspacePlusSeparatorEmitsWarning() throws {
+    let url = try temporaryConfig(
+        """
+        [keys.workspaces]
+        "shift+1" = 'workspace-1'
+        w = 'W'
         """
     )
     let result = ConfigLoader.load(from: url)
 
     #expect(result.config.keys.workspaces == ["w": "W"])
-    #expect(result.warnings.count == 2)
+    #expect(result.warnings.count == 1)
+    #expect(result.warnings[0].contains("shift+1"))
 }
 
 @Test func workspaceBindingsAreEmptyByDefault() {
     #expect(KeyBindings.defaults.workspaces.isEmpty)
     #expect(GridSpacesConfig.defaults.keys.workspaces.isEmpty)
+}
+
+@Test func exampleConfigLoadsCleanly() throws {
+    // Resolve config/gridspaces.toml relative to the package root.
+    let packageRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+    let configURL = packageRoot.appendingPathComponent("config/gridspaces.toml")
+    guard FileManager.default.fileExists(atPath: configURL.path) else { return }
+
+    let result = ConfigLoader.load(from: configURL)
+
+    #expect(result.warnings.isEmpty)
 }
 
 private func temporaryConfig(_ contents: String) throws -> URL {
