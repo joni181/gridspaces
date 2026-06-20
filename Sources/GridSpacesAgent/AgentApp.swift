@@ -51,14 +51,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             systemSymbolName: "square.grid.3x3",
             accessibilityDescription: "GridSpaces"
         )
+        item.menu = makeStatusMenu()
+        statusItem = item
+    }
+
+    func makeStatusMenu() -> NSMenu {
         let menu = NSMenu()
         menu.addItem(withTitle: "Open GridSpaces", action: #selector(openGrid), keyEquivalent: "")
-        menu.addItem(withTitle: "Reload Configuration", action: #selector(reloadConfig), keyEquivalent: "")
+        menu.addItem(withTitle: "Reload Configuration", action: #selector(reloadConfig), keyEquivalent: "r")
+        menu.addItem(withTitle: "Open Config", action: #selector(openConfig), keyEquivalent: ",")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit GridSpaces", action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
-        item.menu = menu
-        statusItem = item
+        return menu
     }
 
     private func handle(_ command: AgentCommand) {
@@ -76,6 +81,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func reloadConfig() {
         panelController.reloadConfiguration()
+    }
+
+    @objc private func openConfig() {
+        panelController.openConfig()
     }
 
     @objc private func quit() {

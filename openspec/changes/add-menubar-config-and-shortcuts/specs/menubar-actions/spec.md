@@ -34,15 +34,14 @@ The `Open Config` status-menu item SHALL use the same config preparation and mac
 - **WHEN** the menu action cannot prepare or open the config file
 - **THEN** GridSpaces presents an actionable error using its existing popup error surface
 
-### Requirement: Status-menu actions have keyboard equivalents
+### Requirement: App-owned status-menu actions have keyboard equivalents
 
-GridSpaces SHALL assign a keyboard equivalent to every actionable status-menu item.
+GridSpaces SHALL assign fixed keyboard equivalents to `Reload Configuration`, `Open Config`, and `Quit GridSpaces`, while `Open GridSpaces` SHALL have no menu key equivalent because its global shortcut is owned by AeroSpace.
 
-#### Scenario: Default menu shortcuts are displayed
+#### Scenario: Menu shortcuts are displayed
 
-- **GIVEN** the user has not configured a custom menubar open shortcut
 - **WHEN** the status menu is shown
-- **THEN** `Open GridSpaces` displays `Control+Option+Space`
+- **THEN** `Open GridSpaces` displays no shortcut
 - **AND** `Reload Configuration` displays `Command+R`
 - **AND** `Open Config` displays `Command+,`
 - **AND** `Quit GridSpaces` displays `Command+Q`
@@ -52,24 +51,9 @@ GridSpaces SHALL assign a keyboard equivalent to every actionable status-menu it
 - **WHEN** the status menu is active and the user presses `Command+R`, `Command+,`, or `Command+Q`
 - **THEN** GridSpaces invokes the corresponding reload, config-open, or quit action
 
-### Requirement: Open menu shortcut tracks active configuration
+#### Scenario: AeroSpace open binding is not duplicated
 
-The `Open GridSpaces` menu item's keyboard equivalent SHALL reflect the active configuration and SHALL update after configuration reload.
-
-#### Scenario: Custom open shortcut is loaded at startup
-
-- **GIVEN** `[menubar].open_shortcut` contains a valid custom hotkey
-- **WHEN** GridSpaces starts and loads the configuration
-- **THEN** `Open GridSpaces` displays and responds to that menu key equivalent
-
-#### Scenario: Open shortcut changes on reload
-
-- **GIVEN** the active open shortcut differs from the value now stored in the config file
-- **WHEN** configuration reload succeeds
-- **THEN** the `Open GridSpaces` menu item uses the newly configured equivalent
-
-#### Scenario: Reload is rejected
-
-- **GIVEN** GridSpaces has an active open shortcut
-- **WHEN** configuration reload fails and the new configuration is not applied
-- **THEN** the `Open GridSpaces` menu item keeps the previous equivalent
+- **GIVEN** the user has configured an AeroSpace shortcut that invokes GridSpaces
+- **WHEN** GridSpaces constructs or reloads its status menu
+- **THEN** GridSpaces does not read or copy that shortcut
+- **AND** does not register a separate global shortcut

@@ -17,32 +17,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     var isOpen: Bool { panel?.isVisible == true }
 
     func open() {
-        if panel == nil {
-            let hostingController = NSHostingController(
-                rootView: GridView(
-                    viewModel: viewModel,
-                    onOpenConfig: { [weak self] in self?.openConfig() }
-                )
-            )
-            let newPanel = NSPanel(
-                contentRect: .zero,
-                styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
-            )
-            newPanel.titleVisibility = .hidden
-            newPanel.titlebarAppearsTransparent = true
-            newPanel.isMovableByWindowBackground = true
-            newPanel.level = .floating
-            newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            newPanel.isReleasedWhenClosed = false
-            newPanel.delegate = self
-            newPanel.contentViewController = hostingController
-            newPanel.backgroundColor = .clear
-            newPanel.isOpaque = false
-            newPanel.hasShadow = true
-            panel = newPanel
-        }
+        ensurePanel()
 
         openRequestID &+= 1
         let requestID = openRequestID
@@ -72,6 +47,25 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
     }
 
+    func openConfig() {
+        let url: URL
+        do {
+            url = try ConfigFilePreparer.prepare()
+        } catch {
+            presentError(
+                "Could not prepare GridSpaces config at \(ConfigLoader.defaultURL.path): \(error.localizedDescription)"
+            )
+            return
+        }
+
+        guard NSWorkspace.shared.open(url) else {
+            presentError(
+                "Could not open GridSpaces config at \(url.path) with its default application."
+            )
+            return
+        }
+    }
+
     func windowWillClose(_ notification: Notification) {
         removeKeyMonitor()
     }
@@ -94,6 +88,47 @@ final class PanelController: NSObject, NSWindowDelegate {
             NSEvent.removeMonitor(keyMonitor)
             self.keyMonitor = nil
         }
+    }
+
+    private func ensurePanel() {
+        guard panel == nil else { return }
+
+        let hostingController = NSHostingController(
+            rootView: GridView(
+                viewModel: viewModel,
+                onOpenConfig: { [weak self] in self?.openConfig() }
+            )
+        )
+        let newPanel = NSPanel(
+            contentRect: .zero,
+            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        newPanel.titleVisibility = .hidden
+        newPanel.titlebarAppearsTransparent = true
+        newPanel.isMovableByWindowBackground = true
+        newPanel.level = .floating
+        newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        newPanel.isReleasedWhenClosed = false
+        newPanel.delegate = self
+        newPanel.contentViewController = hostingController
+        newPanel.backgroundColor = .clear
+        newPanel.isOpaque = false
+        newPanel.hasShadow = true
+        panel = newPanel
+    }
+
+    private func presentError(_ message: String) {
+        viewModel.reportError(message)
+        guard !isOpen else { return }
+
+        openRequestID &+= 1
+        ensurePanel()
+        positionPanelAtPointer()
+        panel?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        installKeyMonitor()
     }
 
     private func positionPanelAtPointer() {
@@ -197,25 +232,6 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private func directWorkspace(token: String, event: NSEvent) -> String? {
         return viewModel.config.keys.workspaces[token]
-    }
-
-    private func openConfig() {
-        let url: URL
-        do {
-            url = try ConfigFilePreparer.prepare()
-        } catch {
-            viewModel.reportError(
-                "Could not prepare GridSpaces config at \(ConfigLoader.defaultURL.path): \(error.localizedDescription)"
-            )
-            return
-        }
-
-        guard NSWorkspace.shared.open(url) else {
-            viewModel.reportError(
-                "Could not open GridSpaces config at \(url.path) with its default application."
-            )
-            return
-        }
     }
 
     private func popupModifiers(_ flags: NSEvent.ModifierFlags) -> PopupModifier {

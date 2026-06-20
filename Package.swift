@@ -30,5 +30,9 @@ let package = Package(
             name: "GridSpacesCoreTests",
             dependencies: ["GridSpacesCore"]
         ),
+        .testTarget(
+            name: "GridSpacesAgentTests",
+            dependencies: ["GridSpacesAgent"]
+        ),
     ]
 )

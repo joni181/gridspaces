@@ -6,13 +6,11 @@ The GridSpaces status menu does not expose configuration access and gives no sho
 
 - Add an `Open Config` status-menu item that uses the same config preparation and default-application opening behavior as the popup settings button and focused `Command+,` shortcut.
 - Assign status-menu shortcuts:
-  - `Open GridSpaces`: the configured open shortcut, defaulting to `Control+Option+Space`.
+  - `Open GridSpaces`: no shortcut, because opening GridSpaces globally remains bound through AeroSpace.
   - `Reload Configuration`: `Command+R`.
   - `Open Config`: `Command+,`.
   - `Quit GridSpaces`: `Command+Q`.
-- Add a `[menubar].open_shortcut` configuration setting using GridSpaces/AeroSpace hotkey syntax, with `ctrl-alt-space` as its default.
-- Refresh the `Open GridSpaces` menu item's displayed key equivalent when configuration is loaded or reloaded.
-- Preserve the existing architecture in which AeroSpace owns global hotkey registration; the configured menu shortcut is a menu key equivalent and does not introduce a GridSpaces global event tap.
+- Preserve the existing architecture in which AeroSpace owns the global shortcut for opening GridSpaces; GridSpaces does not inspect or duplicate the AeroSpace binding.
 
 ## Capabilities
 
@@ -22,12 +20,10 @@ The GridSpaces status menu does not expose configuration access and gives no sho
 
 ### Modified Capabilities
 
-- `configuration`: Adds the configurable status-menu shortcut for opening GridSpaces and its default/fallback behavior.
+<!-- None. -->
 
 ## Impact
 
-- `Sources/GridSpacesAgent/AgentApp.swift` — status-menu construction, actions, and dynamic key-equivalent updates.
+- `Sources/GridSpacesAgent/AgentApp.swift` — status-menu construction, actions, and fixed key equivalents.
 - `Sources/GridSpacesAgent/PanelController.swift` — expose or delegate the existing shared config-opening action for use outside the popup.
-- `Sources/GridSpacesCore/Configuration.swift` — parse and default the new menubar shortcut setting.
-- `config/gridspaces.toml` and `docs/configuration.md` — document the new setting.
-- Tests for config parsing, macOS key-equivalent conversion, and menu refresh behavior.
+- Tests for status-menu construction and config-opening behavior.

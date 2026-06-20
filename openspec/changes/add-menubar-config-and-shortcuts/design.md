@@ -2,54 +2,40 @@
 
 `AppDelegate.installStatusItem()` currently creates three menu items: `Open GridSpaces`, `Reload Configuration`, and `Quit GridSpaces`. Only Quit has a key equivalent. Config opening is implemented privately in `PanelController` and is already shared by the popup settings button and focused `Command+,` handling.
 
-GridSpaces hotkeys use AeroSpace-style strings such as `ctrl-alt-space`, while AppKit menu items require a base `keyEquivalent` plus `keyEquivalentModifierMask`. The configured open shortcut can change after startup, so the status menu cannot be treated as immutable.
+The global shortcut that opens GridSpaces is not owned by GridSpaces configuration. Users define it as an AeroSpace binding that invokes the GridSpaces CLI, so the app cannot reliably know which shortcut to display for `Open GridSpaces`.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
 - Add `Open Config` to the status menu and route it through the existing config-opening behavior.
-- Give all actionable menu items the requested keyboard equivalents.
-- Make the `Open GridSpaces` equivalent configurable, defaulting to `ctrl-alt-space`.
-- Update the menu equivalent after a successful configuration reload.
-- Keep shortcut parsing and AppKit conversion testable outside menu construction.
+- Assign the requested fixed equivalents to reload, config-open, and quit.
+- Leave `Open GridSpaces` without a menu key equivalent.
 
 **Non-Goals:**
 
 - Registering a GridSpaces-owned global hotkey or event tap.
 - Reading or modifying AeroSpace's configuration to discover its binding.
-- Making reload, config-open, or quit shortcuts configurable.
+- Adding a GridSpaces setting that duplicates the AeroSpace open binding.
+- Making the fixed menu shortcuts configurable.
 - Changing the focused popup's existing `Command+,` behavior.
 - Automatically reloading configuration after an external editor saves it.
 
 ## Decisions
 
-### Decision: Add a dedicated `[menubar].open_shortcut` setting
+### Decision: Leave `Open GridSpaces` without a menu key equivalent
 
-The configuration will accept:
+The item will remain clickable but will use an empty AppKit key equivalent. GridSpaces will not add a parallel setting or inspect `~/.aerospace.toml`.
 
-```toml
-[menubar]
-open_shortcut = "ctrl-alt-space"
-```
+**Why:** AeroSpace owns the global binding, and its configuration can contain modes, aliases, command sequences, or multiple bindings. Copying the shortcut into GridSpaces would create two sources of truth, while parsing AeroSpace's file would couple GridSpaces to configuration it does not own.
 
-The setting uses the same hyphen-separated modifier and key names already documented for GridSpaces bindings. If it is absent, the built-in value is `ctrl-alt-space`. If it is invalid or cannot be represented as an AppKit menu equivalent, GridSpaces reports a configuration warning and uses the default.
+**Alternative considered:** Default the menu item to `Control+Option+Space`. Rejected because that value is only an example AeroSpace binding and may not match the user's actual setup.
 
-**Alternative considered:** Infer the shortcut from `~/.aerospace.toml`. Rejected because AeroSpace bindings can invoke arbitrary command sequences, include multiple GridSpaces bindings, and use modes; there is no single reliable open shortcut to extract.
+**Alternative considered:** Add a GridSpaces menubar shortcut setting. Rejected because users would need to manually keep it synchronized with AeroSpace.
 
-**Alternative considered:** Add `open-gridspaces` to `[keys]`. Rejected because `[keys]` currently defines commands handled inside the focused popup, while this value configures application chrome.
+### Decision: Use fixed AppKit equivalents for the other actions
 
-### Decision: Treat shortcuts as AppKit menu key equivalents, not global registrations
-
-Each `NSMenuItem` receives the requested key equivalent and modifier mask. `Open GridSpaces` is converted from the configured hotkey; the other three use fixed equivalents.
-
-**Why:** The request concerns status-menu items, and GridSpaces currently delegates global shortcuts to AeroSpace. Registering a global shortcut would create a second binding owner and could conflict with the AeroSpace command users already configure.
-
-### Decision: Centralize hotkey-to-AppKit conversion
-
-A small pure converter will parse supported GridSpaces hotkey tokens into a base key and `NSEvent.ModifierFlags`. It will support the documented modifiers (`cmd`, `ctrl`, `alt`, `shift`) and special keys needed by the default, including `space`.
-
-**Alternative considered:** Parse the string inline in `AppDelegate`. Rejected because validation and edge cases would be difficult to test independently.
+`Reload Configuration`, `Open Config`, and `Quit GridSpaces` will use `Command+R`, `Command+,`, and `Command+Q` respectively. These are app-owned actions with conventional fixed equivalents and do not require configuration parsing.
 
 ### Decision: Share config opening through `PanelController`
 
@@ -57,24 +43,14 @@ A small pure converter will parse supported GridSpaces hotkey tokens into a base
 
 If the action fails while the popup is closed, GridSpaces will open the popup error surface so the existing actionable error remains visible.
 
-### Decision: Rebuild or update the dynamic menu item after config load
-
-`AppDelegate` will retain the `Open GridSpaces` menu item and update its equivalent from the active configuration at startup and after `Reload Configuration` completes. The menu must reflect the last successfully applied configuration; a rejected reload must not replace the previous equivalent.
-
-This behavior must compose with the pending `config-validation-errors` change, which defines last-good configuration semantics.
-
 ## Risks / Trade-offs
 
-- [A configured shortcut cannot be represented by `NSMenuItem`] → Warn and fall back to `ctrl-alt-space`.
-- [Users may interpret the displayed shortcut as a GridSpaces-owned global binding] → Document that global invocation remains configured in AeroSpace and recommend matching the two values.
-- [Reload and menu refresh can diverge if configuration application has no result callback] → Make the reload path return or publish the active config before updating the menu item.
+- [The status menu does not show the user's AeroSpace open shortcut] → Accept this limitation because GridSpaces has no authoritative way to discover it.
 - [Config-open failure occurs with no popup visible] → Present the existing popup error surface instead of failing silently.
 
 ## Migration Plan
 
-No user migration is required. Existing configurations receive `ctrl-alt-space` through the built-in default. Users whose AeroSpace open binding differs can add `[menubar].open_shortcut` to keep the displayed menu equivalent aligned.
-
-Rollback removes the new menu item and configuration field; existing files containing `[menubar]` remain parseable only if unknown top-level sections are tolerated, so rollback documentation should tell users to remove that section if using an older release.
+No user migration is required. Existing AeroSpace bindings remain unchanged. Rollback removes the new `Open Config` menu item and the added fixed equivalents.
 
 ## Open Questions
 
