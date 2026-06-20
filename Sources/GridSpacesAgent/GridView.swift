@@ -4,6 +4,7 @@ import SwiftUI
 
 struct GridView: View {
     @ObservedObject var viewModel: GridViewModel
+    let onOpenConfig: () -> Void
     private let tileSize = CGSize(width: 154, height: 112)
 
     var body: some View {
@@ -15,7 +16,6 @@ struct GridView: View {
             } else {
                 workspaceGrid
             }
-            footer
         }
         .padding(20)
         .background(.ultraThinMaterial)
@@ -36,6 +36,12 @@ struct GridView: View {
                     .foregroundStyle(.red)
                     .help(error)
             }
+            Button(action: onOpenConfig) {
+                Image(systemName: "gearshape")
+            }
+            .buttonStyle(.plain)
+            .help("Open Config (⌘,)")
+            .accessibilityLabel("Open GridSpaces Configuration")
         }
         .frame(minWidth: 420)
     }
@@ -65,18 +71,6 @@ struct GridView: View {
                 }
             }
         }
-    }
-
-    private var footer: some View {
-        HStack(spacing: 18) {
-            Label("Navigate  H J K L / arrows", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
-            Label("Select  ↩", systemImage: "return")
-            Label("Close windows  X", systemImage: "xmark.app")
-            Label("Move display  ⇧ H J K L", systemImage: "display.2")
-            Label("Cancel  Esc", systemImage: "escape")
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
     }
 }
 

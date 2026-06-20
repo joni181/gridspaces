@@ -137,6 +137,10 @@ final class GridViewModel: ObservableObject {
         pendingCloseWorkspace = nil
     }
 
+    func reportError(_ message: String) {
+        errorMessage = message
+    }
+
     func moveWorkspace(_ direction: Direction) {
         guard let highlightedWorkspace else { return }
         let mode = config.behavior.moveMode

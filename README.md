@@ -5,10 +5,8 @@ GridSpaces is a keyboard-first, Mission Control-style workspace overview for
 workspace grid, application icons, directional navigation, workspace actions,
 and popup-free directional switching without modifying AeroSpace.
 
-This is the first runnable version. It supports macOS 13 or newer and AeroSpace
-0.20.3-Beta or newer. It uses AeroSpace's CLI on demand and does not poll in the
-background. No Screen Recording or Accessibility permission is required by
-GridSpaces.
+This is the first runnable version. It supports macOS 13 or newer and AeroSpace 0.20.3-Beta or newer. It uses AeroSpace's CLI on demand and does not poll in the background.
+No Screen Recording or Accessibility permission is required by GridSpaces.
 
 ## Build and run
 
