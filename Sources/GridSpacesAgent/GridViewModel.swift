@@ -30,13 +30,18 @@ final class GridViewModel: ObservableObject {
         }
     }
 
-    func refresh(onFocusedWorkspaceReady: (() -> Void)? = nil) {
+    func refresh(
+        preferredHighlightedWorkspace: String? = nil,
+        onFocusedWorkspaceReady: (() -> Void)? = nil
+    ) {
         refreshID &+= 1
         let requestID = refreshID
         reloadConfiguration()
         isLoading = true
         errorMessage = nil
-        highlightedWorkspace = nil
+        if preferredHighlightedWorkspace == nil {
+            highlightedWorkspace = nil
+        }
         let config = config
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let client: AeroSpaceClient
@@ -57,9 +62,12 @@ final class GridViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self, self.refreshID == requestID else { return }
                 self.focusedWorkspace = focusedWorkspace
-                self.highlightedWorkspace = self.model.tile(named: focusedWorkspace) != nil
-                    ? focusedWorkspace
-                    : nil
+                self.highlightedWorkspace = Self.highlightedWorkspace(
+                    preferred: preferredHighlightedWorkspace,
+                    focused: focusedWorkspace,
+                    in: self.model,
+                    fallbackToOrigin: false
+                )
                 onFocusedWorkspaceReady?()
             }
 
@@ -71,9 +79,12 @@ final class GridViewModel: ObservableObject {
                     self.model = model
                     self.monitors = snapshot.monitors
                     self.focusedWorkspace = snapshot.focusedWorkspace
-                    self.highlightedWorkspace = model.tile(named: snapshot.focusedWorkspace) != nil
-                        ? snapshot.focusedWorkspace
-                        : model.originWorkspace
+                    self.highlightedWorkspace = Self.highlightedWorkspace(
+                        preferred: preferredHighlightedWorkspace,
+                        focused: snapshot.focusedWorkspace,
+                        in: model,
+                        fallbackToOrigin: true
+                    )
                     self.isLoading = false
                 }
             } catch {
@@ -157,7 +168,10 @@ final class GridViewModel: ObservableObject {
         }
         let monitorCount = monitors.count
         let wrap = mode == .cycle ? true : config.behavior.monitorWrap
-        performAction(refreshAfter: true) {
+        performAction(
+            refreshAfter: true,
+            preferredHighlightedWorkspace: highlightedWorkspace
+        ) {
             try AeroSpaceClient().moveWorkspace(
                 highlightedWorkspace,
                 target: target,
@@ -190,13 +204,19 @@ final class GridViewModel: ObservableObject {
         }
     }
 
-    private func performAction(refreshAfter: Bool = false, _ action: @escaping () throws -> Void) {
+    private func performAction(
+        refreshAfter: Bool = false,
+        preferredHighlightedWorkspace: String? = nil,
+        _ action: @escaping () throws -> Void
+    ) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
                 try action()
                 if refreshAfter {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        self?.refresh()
+                        self?.refresh(
+                            preferredHighlightedWorkspace: preferredHighlightedWorkspace
+                        )
                     }
                 }
             } catch {
@@ -205,6 +225,21 @@ final class GridViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    static func highlightedWorkspace(
+        preferred: String?,
+        focused: String,
+        in model: GridModel,
+        fallbackToOrigin: Bool
+    ) -> String? {
+        if let preferred, model.tile(named: preferred) != nil {
+            return preferred
+        }
+        if model.tile(named: focused) != nil {
+            return focused
+        }
+        return fallbackToOrigin ? model.originWorkspace : nil
     }
 }
 
