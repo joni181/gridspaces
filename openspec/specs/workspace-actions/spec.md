@@ -61,6 +61,7 @@ GridSpaces SHALL provide in-grid actions that move the highlighted workspace to 
 
 - **WHEN** the user triggers a directional move action and no monitor exists in that direction
 - **THEN** the action is a no-op (unless monitor wrap-around is enabled in configuration) and no error is shown
+- **AND** the highlight remains on the same workspace tile
 
 #### Scenario: Cycle mode alternative
 
@@ -82,4 +83,3 @@ GridSpaces SHALL provide in-grid actions that move the highlighted workspace to 
 
 - **WHEN** the user triggers any move action and only one monitor exists
 - **THEN** the action is a no-op and no error is shown
-
