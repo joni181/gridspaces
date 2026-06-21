@@ -11,6 +11,14 @@ import Testing
     #expect(result.warnings.isEmpty)
 }
 
+@Test func overlayIPCCommandsUseStableWireValues() {
+    #expect(OverlayCommand.ping.rawValue == "ping")
+    #expect(OverlayCommand.show.rawValue == "show")
+    #expect(OverlayCommand.hide.rawValue == "hide")
+    #expect(OverlayCommand.reload.rawValue == "reload")
+    #expect(OverlayCommand.shutdown.rawValue == "shutdown")
+}
+
 @Test func defaultGridUsesFullKeyboardLayout() {
     #expect(
         GridSpacesConfig.defaults.grid == [
@@ -33,6 +41,9 @@ import Testing
             "#FFCC00",
         ]
     )
+    #expect(Appearance.defaults.screenBorders)
+    #expect(Appearance.defaults.screenBorderWidth == 5)
+    #expect(Appearance.defaults.screenMinimumMonitors == 2)
     #expect(GridSpacesConfig.defaults.appearance == .defaults)
 }
 
@@ -58,6 +69,9 @@ import Testing
 
         [appearance]
         monitor_colors = ["#112233", "#aBcDeF"]
+        screen_borders = false
+        screen_border_width = 9
+        screen_minimum_monitors = 3
         """
     )
     let result = ConfigLoader.load(from: url)
@@ -72,6 +86,9 @@ import Testing
     #expect(result.config.behavior.moveMode == .cycle)
     #expect(result.config.behavior.monitorWrap)
     #expect(result.config.appearance.monitorColors == ["#112233", "#ABCDEF"])
+    #expect(!result.config.appearance.screenBorders)
+    #expect(result.config.appearance.screenBorderWidth == 9)
+    #expect(result.config.appearance.screenMinimumMonitors == 3)
     #expect(result.warnings.isEmpty)
 }
 
@@ -109,6 +126,42 @@ import Testing
     #expect(result.config.appearance == .defaults)
     #expect(result.warnings.count == 1)
     #expect(result.warnings[0].contains("#RRGGBB"))
+}
+
+@Test func screenOverlayAppearanceBoundariesAreAccepted() throws {
+    let url = try temporaryConfig(
+        """
+        [appearance]
+        screen_border_width = 1
+        screen_minimum_monitors = 1
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.appearance.screenBorderWidth == 1)
+    #expect(result.config.appearance.screenMinimumMonitors == 1)
+    #expect(result.warnings.isEmpty)
+}
+
+@Test func invalidScreenOverlayNumbersFallBackIndependently() throws {
+    let url = try temporaryConfig(
+        """
+        [appearance]
+        monitor_colors = ["#112233"]
+        screen_borders = false
+        screen_border_width = 0
+        screen_minimum_monitors = -1
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.appearance.monitorColors == ["#112233"])
+    #expect(!result.config.appearance.screenBorders)
+    #expect(result.config.appearance.screenBorderWidth == 5)
+    #expect(result.config.appearance.screenMinimumMonitors == 2)
+    #expect(result.warnings.count == 2)
+    #expect(result.warnings.contains { $0.contains("screen_border_width") })
+    #expect(result.warnings.contains { $0.contains("screen_minimum_monitors") })
 }
 
 @Test func invalidDocumentFallsBackToDefaults() throws {

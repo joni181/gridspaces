@@ -60,6 +60,25 @@ monitor_colors = [
 
 The setting is optional. If it is omitted, GridSpaces uses the default palette above. If the array is empty or any entry is invalid, GridSpaces reports a configuration warning and falls back to the complete default palette.
 
+### Screen identification overlays
+
+When the workspace grid is open, GridSpaces can draw the monitor color around each physical screen. This makes it clear which workspace tile color corresponds to which monitor.
+
+```toml
+[appearance]
+screen_borders = true
+screen_border_width = 5
+screen_minimum_monitors = 2
+```
+
+- `screen_borders` enables the colored screen borders. The default is `true`.
+- `screen_border_width` sets the border width in logical screen pixels. It must be a positive integer and defaults to `5`.
+- `screen_minimum_monitors` sets how many monitors must be connected before any screen identification overlay is shown. It must be a positive integer and defaults to `2`, so a single-monitor setup is not colored. Set it to `1` to allow overlays with one monitor.
+
+Screen borders use the same `monitor_colors` assignment as workspace tile outlines, do not accept mouse or keyboard input, and disappear when the grid closes. Each top border is placed below any menu-bar space reserved by macOS on that specific display.
+
+Invalid numeric values produce a configuration warning and fall back independently to their defaults. Screen infill is deferred because full-display translucent surfaces caused unacceptable compositor CPU and memory use.
+
 ---
 
 ## `[keys]`

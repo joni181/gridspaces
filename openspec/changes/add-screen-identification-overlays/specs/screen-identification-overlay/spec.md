@@ -16,7 +16,7 @@ While the workspace grid is open and the connected monitor count meets the confi
 
 - **GIVEN** the connected monitor count is less than `appearance.screen_minimum_monitors`
 - **WHEN** the workspace grid opens
-- **THEN** GridSpaces displays no screen identification borders or infill
+- **THEN** GridSpaces displays no screen identification borders
 
 #### Scenario: Palette is shorter than the screen list
 
@@ -24,28 +24,27 @@ While the workspace grid is open and the connected monitor count meets the confi
 - **WHEN** GridSpaces renders screen identification overlays
 - **THEN** it cycles through the monitor palette using the same monitor-order rules as workspace tile outlines
 
-#### Scenario: Screen borders are disabled without infill
+#### Scenario: Screen borders are disabled
 
-- **GIVEN** screen borders and screen infill are both disabled
+- **GIVEN** screen borders are disabled
 - **WHEN** the workspace grid opens
 - **THEN** GridSpaces displays no screen identification overlays
 
-### Requirement: Render configurable screen borders and infill
+### Requirement: Render configurable screen borders
 
-Each screen identification overlay SHALL cover the full screen frame, draw an enabled border inward at the configured width, and draw enabled infill inside the border using the same color at the configured transparency.
+Each screen identification overlay SHALL draw a border at the configured width. The top border SHALL be placed below the menu bar on each screen where macOS reserves menu-bar space.
 
 #### Scenario: Default appearance is used
 
 - **GIVEN** at least 2 monitors are connected
 - **WHEN** the workspace grid opens with the default appearance configuration
 - **THEN** each connected screen displays a 5-logical-pixel colored border
-- **AND** no colored infill is visible
 
 #### Scenario: Default appearance is used with one monitor
 
 - **GIVEN** exactly 1 monitor is connected
 - **WHEN** the workspace grid opens with the default appearance configuration
-- **THEN** no screen identification border or infill is visible
+- **THEN** no screen identification border is visible
 
 #### Scenario: Custom border width is used
 
@@ -53,18 +52,12 @@ Each screen identification overlay SHALL cover the full screen frame, draw an en
 - **WHEN** the overlay is rendered
 - **THEN** the complete border is visible inside the screen bounds at the configured width
 
-#### Scenario: Infill is enabled
+#### Scenario: A screen has a menu bar
 
-- **GIVEN** screen infill is enabled with a transparency below 100 percent
-- **WHEN** the overlay is rendered
-- **THEN** the screen area inside the border is covered by the screen's assigned monitor color
-- **AND** the configured transparency is applied
-
-#### Scenario: Infill is enabled while borders are disabled
-
-- **GIVEN** screen infill is enabled and screen borders are disabled
-- **WHEN** the workspace grid opens
-- **THEN** each screen displays the configured infill without a border
+- **GIVEN** macOS reports reserved menu-bar space at the top of a screen
+- **WHEN** the overlay is rendered on that screen
+- **THEN** the top border is drawn immediately below the reserved menu-bar space
+- **AND** no fixed top inset is applied to screens without reserved menu-bar space
 
 ### Requirement: Screen overlays do not intercept interaction
 
@@ -80,9 +73,37 @@ Screen identification overlays SHALL NOT become key or main windows, steal focus
 - **WHEN** screen identification overlays are visible
 - **THEN** the workspace grid remains the active keyboard target
 
+### Requirement: Screen borders minimize compositing work
+
+GridSpaces SHALL render screen borders without allocating a full-screen transparent overlay surface.
+
+#### Scenario: Screen borders are shown
+
+- **WHEN** screen borders are enabled
+- **THEN** GridSpaces renders only narrow opaque surfaces along the four screen edges
+- **AND** does not create a display-sized alpha-composited window
+
 ### Requirement: Screen overlays follow the grid lifecycle
 
 GridSpaces SHALL show screen identification overlays only while the workspace grid is visible and SHALL derive them from the current screens, monitor state, and appearance configuration on each open.
+
+#### Scenario: Grid opens with cached monitor state
+
+- **WHEN** the workspace grid opens and cached monitor ordering is available
+- **THEN** the overlay helper presents overlays immediately from the cached ordering
+- **AND** grid popup presentation does not wait for overlay window creation or monitor refresh
+
+#### Scenario: Grid opens without cached monitor state
+
+- **WHEN** the workspace grid opens before the helper has loaded monitor ordering
+- **THEN** the helper presents overlays immediately using deterministic current-screen order
+- **AND** updates them after a monitor-only background refresh
+
+#### Scenario: Monitor refresh is performed
+
+- **WHEN** visible overlays refresh their monitor ordering
+- **THEN** the helper queries only AeroSpace monitor state
+- **AND** does not wait for the full workspace or per-workspace window snapshot
 
 #### Scenario: Grid closes
 
@@ -99,4 +120,20 @@ GridSpaces SHALL show screen identification overlays only while the workspace gr
 #### Scenario: Appearance configuration reloads while grid is open
 
 - **WHEN** the appearance configuration is reloaded while the workspace grid is open
-- **THEN** visible overlays update to the new enabled states, minimum monitor count, width, infill, transparency, and monitor palette
+- **THEN** visible overlays update to the new enabled state, minimum monitor count, width, and monitor palette
+
+### Requirement: Screen overlays run independently from the grid popup
+
+GridSpaces SHALL render and manage screen overlay windows in a persistent helper process controlled by local IPC.
+
+#### Scenario: Overlay windows are created
+
+- **WHEN** the grid agent requests screen overlays
+- **THEN** overlay window creation and drawing occur in the helper process
+- **AND** the grid agent's main thread remains available to present and operate the grid popup
+
+#### Scenario: Grid agent terminates
+
+- **WHEN** the grid agent terminates normally
+- **THEN** it requests shutdown of the overlay helper
+- **AND** the helper removes its overlay windows before exiting

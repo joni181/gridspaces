@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 final class PanelController: NSObject, NSWindowDelegate {
     private let viewModel = GridViewModel()
+    private let overlayProcessController = OverlayProcessController()
     private var panel: NSPanel?
     private var keyMonitor: Any?
     private var openRequestID: UInt = 0
@@ -16,8 +17,17 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     var isOpen: Bool { panel?.isVisible == true }
 
+    func startOverlayHelper() {
+        overlayProcessController.start()
+    }
+
+    func shutdown() {
+        overlayProcessController.shutdown()
+    }
+
     func open() {
         ensurePanel()
+        overlayProcessController.send(.show)
 
         openRequestID &+= 1
         let requestID = openRequestID
@@ -33,6 +43,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     func close() {
         openRequestID &+= 1
         panel?.orderOut(nil)
+        overlayProcessController.send(.hide)
         removeKeyMonitor()
     }
 
@@ -42,6 +53,7 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     func reloadConfiguration() {
         viewModel.reloadConfiguration()
+        overlayProcessController.send(.reload)
         if isOpen {
             viewModel.refresh()
         }
@@ -67,6 +79,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        overlayProcessController.send(.hide)
         removeKeyMonitor()
     }
 

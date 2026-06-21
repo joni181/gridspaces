@@ -8,6 +8,9 @@ rows = [
 
 [appearance]
 monitor_colors = ["#32ADE6", "#FF9500", "#34C759", "#FF2D55", "#AF52DE", "#FFCC00"]
+screen_borders = true
+screen_border_width = 5
+screen_minimum_monitors = 2
 
 [keys]
 h = 'left'

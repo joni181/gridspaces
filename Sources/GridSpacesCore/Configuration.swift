@@ -61,13 +61,27 @@ public struct Behavior: Codable, Equatable, Sendable {
 
 public struct Appearance: Codable, Equatable, Sendable {
     public var monitorColors: [String]
+    public var screenBorders: Bool
+    public var screenBorderWidth: Int
+    public var screenMinimumMonitors: Int
 
-    public init(monitorColors: [String]) {
+    public init(
+        monitorColors: [String],
+        screenBorders: Bool = true,
+        screenBorderWidth: Int = 5,
+        screenMinimumMonitors: Int = 2
+    ) {
         self.monitorColors = monitorColors
+        self.screenBorders = screenBorders
+        self.screenBorderWidth = screenBorderWidth
+        self.screenMinimumMonitors = screenMinimumMonitors
     }
 
     enum CodingKeys: String, CodingKey {
         case monitorColors = "monitor_colors"
+        case screenBorders = "screen_borders"
+        case screenBorderWidth = "screen_border_width"
+        case screenMinimumMonitors = "screen_minimum_monitors"
     }
 
     public static let defaults = Appearance(
@@ -165,9 +179,15 @@ private struct PartialBehavior: Decodable {
 
 private struct PartialAppearance: Decodable {
     var monitorColors: [String]?
+    var screenBorders: Bool?
+    var screenBorderWidth: Int?
+    var screenMinimumMonitors: Int?
 
     enum CodingKeys: String, CodingKey {
         case monitorColors = "monitor_colors"
+        case screenBorders = "screen_borders"
+        case screenBorderWidth = "screen_border_width"
+        case screenMinimumMonitors = "screen_minimum_monitors"
     }
 }
 
@@ -290,14 +310,37 @@ public enum ConfigLoader {
             }
         }
 
-        if let monitorColors = document.appearance?.monitorColors {
-            if let normalized = normalizeMonitorColors(monitorColors) {
-                result.appearance.monitorColors = normalized
-            } else {
-                warnings.append(
-                    "appearance.monitor_colors must contain at least one color, "
-                        + "with every color in #RRGGBB format; using the default monitor colors."
-                )
+        if let appearance = document.appearance {
+            if let monitorColors = appearance.monitorColors {
+                if let normalized = normalizeMonitorColors(monitorColors) {
+                    result.appearance.monitorColors = normalized
+                } else {
+                    warnings.append(
+                        "appearance.monitor_colors must contain at least one color, "
+                            + "with every color in #RRGGBB format; using the default monitor colors."
+                    )
+                }
+            }
+            result.appearance.screenBorders =
+                appearance.screenBorders ?? result.appearance.screenBorders
+
+            if let width = appearance.screenBorderWidth {
+                if width > 0 {
+                    result.appearance.screenBorderWidth = width
+                } else {
+                    warnings.append(
+                        "appearance.screen_border_width must be a positive integer; using 5."
+                    )
+                }
+            }
+            if let minimum = appearance.screenMinimumMonitors {
+                if minimum > 0 {
+                    result.appearance.screenMinimumMonitors = minimum
+                } else {
+                    warnings.append(
+                        "appearance.screen_minimum_monitors must be a positive integer; using 2."
+                    )
+                }
             }
         }
 

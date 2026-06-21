@@ -14,6 +14,7 @@ RESOURCES="$CONTENTS/Resources"
 rm -rf "$APP"
 mkdir -p "$MACOS" "$RESOURCES"
 cp "$ROOT/.build/release/GridSpacesAgent" "$MACOS/GridSpacesAgent"
+cp "$ROOT/.build/release/GridSpacesOverlayAgent" "$MACOS/GridSpacesOverlayAgent"
 
 cat > "$CONTENTS/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

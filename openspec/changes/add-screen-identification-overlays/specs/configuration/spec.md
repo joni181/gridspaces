@@ -28,7 +28,7 @@ The configuration SHALL accept `appearance.screen_borders` as a boolean and `app
 
 ### Requirement: Configurable minimum monitor count for screen identification
 
-The configuration SHALL accept `appearance.screen_minimum_monitors` as a positive integer defining the minimum number of connected monitors required to show screen identification borders or infill.
+The configuration SHALL accept `appearance.screen_minimum_monitors` as a positive integer defining the minimum number of connected monitors required to show screen identification borders.
 
 #### Scenario: Minimum monitor count is omitted
 
@@ -51,45 +51,13 @@ The configuration SHALL accept `appearance.screen_minimum_monitors` as a positiv
 - **THEN** GridSpaces reports a clear configuration warning
 - **AND** uses the default minimum of 2 connected monitors
 
-### Requirement: Configurable screen identification infill
-
-The configuration SHALL accept `appearance.screen_infill` as a boolean and `appearance.screen_infill_transparency` as an integer percentage from 0 through 100 inclusive. Zero percent SHALL mean fully opaque and 100 percent SHALL mean fully transparent.
-
-#### Scenario: Screen infill settings are omitted
-
-- **WHEN** the configuration omits `appearance.screen_infill` and `appearance.screen_infill_transparency`
-- **THEN** GridSpaces disables screen infill
-- **AND** retains a default infill transparency of 80 percent for use if infill is enabled
-
-#### Scenario: Screen infill is enabled
-
-- **WHEN** `appearance.screen_infill` is `true`
-- **THEN** GridSpaces fills each screen identification overlay with that screen's monitor color
-- **AND** applies the configured infill transparency
-
-#### Scenario: Fully opaque infill is configured
-
-- **WHEN** `appearance.screen_infill_transparency` is `0`
-- **THEN** GridSpaces renders enabled infill fully opaque
-
-#### Scenario: Fully transparent infill is configured
-
-- **WHEN** `appearance.screen_infill_transparency` is `100`
-- **THEN** GridSpaces renders no visible infill
-
-#### Scenario: Screen infill transparency is invalid
-
-- **WHEN** `appearance.screen_infill_transparency` is less than 0 or greater than 100
-- **THEN** GridSpaces reports a clear configuration warning
-- **AND** uses the default infill transparency of 80 percent
-
 ### Requirement: Screen identification appearance is documented
 
-The configuration reference SHALL document the screen border, minimum-monitor, and infill settings, their defaults, border-width units, transparency range and direction, and their relationship to `appearance.monitor_colors`.
+The configuration reference SHALL document the screen border and minimum-monitor settings, their defaults, border-width units, their relationship to `appearance.monitor_colors`, and that screen infill is deferred for performance reasons.
 
 #### Scenario: User consults the configuration reference
 
 - **WHEN** a user reads `docs/configuration.md`
-- **THEN** the document contains a valid `[appearance]` example for screen borders, minimum monitor count, and infill
+- **THEN** the document contains a valid `[appearance]` example for screen borders and minimum monitor count
 - **AND** explains that physical screens and their workspace tiles use the same monitor color
 - **AND** explains how omitted or invalid values behave

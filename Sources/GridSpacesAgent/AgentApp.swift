@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        panelController.startOverlayHelper()
         installStatusItem()
         ipcReceiver = AgentIPCReceiver { [weak self] command in
             self?.handle(command)
@@ -40,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        panelController.shutdown()
         if let notificationToken {
             DistributedNotificationCenter.default().removeObserver(notificationToken)
         }
