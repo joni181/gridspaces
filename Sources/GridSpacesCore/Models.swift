@@ -12,6 +12,49 @@ public enum MoveMode: String, Codable, Sendable {
     case cycle
 }
 
+public struct HotkeyModifiers: OptionSet, Equatable, Sendable {
+    public let rawValue: UInt8
+
+    public init(rawValue: UInt8) {
+        self.rawValue = rawValue
+    }
+
+    public static let command = HotkeyModifiers(rawValue: 1 << 0)
+    public static let option = HotkeyModifiers(rawValue: 1 << 1)
+    public static let control = HotkeyModifiers(rawValue: 1 << 2)
+    public static let shift = HotkeyModifiers(rawValue: 1 << 3)
+
+    public static func commonModifierSet(for hotkeys: [String]) -> HotkeyModifiers? {
+        guard hotkeys.count == 4 else { return nil }
+        let parsed = hotkeys.compactMap(parse)
+        guard parsed.count == hotkeys.count,
+              let first = parsed.first,
+              !first.modifiers.isEmpty,
+              parsed.allSatisfy({ $0.modifiers == first.modifiers })
+        else {
+            return nil
+        }
+        return first.modifiers
+    }
+
+    private static func parse(_ hotkey: String) -> (modifiers: HotkeyModifiers, key: String)? {
+        let parts = hotkey.lowercased().split(separator: "-").map(String.init)
+        guard let key = parts.last, !key.isEmpty else { return nil }
+        var modifiers: HotkeyModifiers = []
+        for part in parts.dropLast() {
+            switch part {
+            case "cmd": modifiers.insert(.command)
+            case "alt": modifiers.insert(.option)
+            case "ctrl": modifiers.insert(.control)
+            case "shift": modifiers.insert(.shift)
+            default: return nil
+            }
+        }
+        guard !["cmd", "alt", "ctrl", "shift"].contains(key) else { return nil }
+        return (modifiers, key)
+    }
+}
+
 public struct Position: Hashable, Codable, Sendable {
     public let row: Int
     public let column: Int

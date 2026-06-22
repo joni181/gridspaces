@@ -23,6 +23,7 @@ GridSpaces currently lets users move a highlight or send a workspace to another 
 
 - `configuration`: Add workspace-reordering defaults and replace the old display-movement command names with argument-style action names.
 - `workspace-actions`: Rename the canonical in-grid actions that move a workspace between displays so they are distinct from workspace-content movement.
+- `aerospace-key-syntax`: Update the accepted command values and examples for argument-style workspace and display movement actions.
 
 ## Impact
 

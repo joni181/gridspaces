@@ -61,6 +61,7 @@ struct GridView: View {
                                 tile: tile,
                                 isHighlighted: tile.workspace.name == viewModel.highlightedWorkspace,
                                 isFocused: tile.workspace.name == viewModel.focusedWorkspace,
+                                isMoveModeActive: viewModel.isWorkspaceMoveModeActive,
                                 outlineColor: viewModel.monitorColor(for: tile.workspace.monitorID),
                                 iconResolver: viewModel.iconResolver
                             )
@@ -80,8 +81,10 @@ private struct WorkspaceTile: View {
     let tile: GridTile
     let isHighlighted: Bool
     let isFocused: Bool
+    let isMoveModeActive: Bool
     let outlineColor: Color
     let iconResolver: AppIconResolver
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -123,6 +126,18 @@ private struct WorkspaceTile: View {
                     isHighlighted ? Color.accentColor : outlineColor,
                     lineWidth: isHighlighted ? 4 : 2
                 )
+        )
+        .scaleEffect(isMoveModeActive && reduceMotion ? 1.025 : 1)
+        .rotationEffect(
+            .degrees(isMoveModeActive && !reduceMotion ? 1.25 : 0)
+        )
+        .animation(
+            isMoveModeActive && !reduceMotion
+                ? .easeInOut(duration: 0.09)
+                    .repeatForever(autoreverses: true)
+                    .delay(Double(tile.position.row + tile.position.column) * 0.012)
+                : .easeOut(duration: 0.12),
+            value: isMoveModeActive
         )
         .accessibilityLabel("Workspace \(tile.workspace.name)")
     }

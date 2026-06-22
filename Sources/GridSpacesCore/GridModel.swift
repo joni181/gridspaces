@@ -119,6 +119,44 @@ public struct GridModel: Sendable {
         }
     }
 
+    public func reorderDestination(
+        from currentName: String,
+        direction: Direction
+    ) -> String? {
+        guard let current = byName[currentName], !current.isOverflow else {
+            return nil
+        }
+
+        let candidates: [GridTile]
+        let increasing: Bool
+        let coordinate: (GridTile) -> Int
+        switch direction {
+        case .left, .right:
+            candidates = tiles.filter {
+                !$0.isOverflow && $0.position.row == current.position.row
+            }
+            increasing = direction == .right
+            coordinate = { $0.position.column }
+        case .up, .down:
+            candidates = tiles.filter {
+                !$0.isOverflow && $0.position.column == current.position.column
+            }
+            increasing = direction == .down
+            coordinate = { $0.position.row }
+        }
+
+        let currentCoordinate = coordinate(current)
+        let eligible = candidates.filter {
+            increasing
+                ? coordinate($0) > currentCoordinate
+                : coordinate($0) < currentCoordinate
+        }
+        return (increasing
+            ? eligible.min(by: { coordinate($0) < coordinate($1) })
+            : eligible.max(by: { coordinate($0) < coordinate($1) })
+        )?.workspace.name
+    }
+
     private func adjacent(
         current: GridTile,
         candidates: [GridTile],

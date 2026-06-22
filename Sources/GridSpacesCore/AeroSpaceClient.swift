@@ -111,6 +111,29 @@ public final class AeroSpaceClient {
         }
     }
 
+    public func moveWindow(id: Int, to workspace: String) throws {
+        _ = try run([
+            "move-node-to-workspace",
+            "--window-id", String(id),
+            workspace,
+        ])
+    }
+
+    public func exchangeWorkspaceContents(
+        source: String,
+        destination: String
+    ) throws {
+        let exchange = WorkspaceContentExchange(
+            listWindows: { [self] workspace in
+                try listWindows(workspace: workspace)
+            },
+            moveWindow: { [self] id, workspace in
+                try moveWindow(id: id, to: workspace)
+            }
+        )
+        try exchange.execute(source: source, destination: destination)
+    }
+
     public func moveWorkspace(
         _ workspace: String,
         target: String,
@@ -166,5 +189,113 @@ public final class AeroSpaceClient {
             )
         }
         return output
+    }
+}
+
+public struct WorkspaceContentExchange {
+    public typealias ListWindows = (String) throws -> [WindowInfo]
+    public typealias MoveWindow = (Int, String) throws -> Void
+
+    private let listWindows: ListWindows
+    private let moveWindow: MoveWindow
+
+    public init(
+        listWindows: @escaping ListWindows,
+        moveWindow: @escaping MoveWindow
+    ) {
+        self.listWindows = listWindows
+        self.moveWindow = moveWindow
+    }
+
+    public func execute(source: String, destination: String) throws {
+        let sourceWindows = try listWindows(source)
+        let destinationWindows = try listWindows(destination)
+
+        do {
+            for window in sourceWindows {
+                try moveIfPresent(
+                    window.id,
+                    to: destination,
+                    source: source,
+                    destination: destination
+                )
+            }
+            for window in destinationWindows {
+                try moveIfPresent(
+                    window.id,
+                    to: source,
+                    source: source,
+                    destination: destination
+                )
+            }
+            try verify(
+                sourceIDs: Set(sourceWindows.map(\.id)),
+                destinationIDs: Set(destinationWindows.map(\.id)),
+                source: source,
+                destination: destination
+            )
+        } catch {
+            rollback(
+                sourceWindows: sourceWindows,
+                destinationWindows: destinationWindows,
+                source: source,
+                destination: destination
+            )
+            throw error
+        }
+    }
+
+    private func moveIfPresent(
+        _ id: Int,
+        to workspace: String,
+        source: String,
+        destination: String
+    ) throws {
+        do {
+            try moveWindow(id, workspace)
+        } catch {
+            let existingIDs = try currentIDs(source: source, destination: destination)
+            if existingIDs.contains(id) {
+                throw error
+            }
+        }
+    }
+
+    private func verify(
+        sourceIDs: Set<Int>,
+        destinationIDs: Set<Int>,
+        source: String,
+        destination: String
+    ) throws {
+        let currentSource = Set(try listWindows(source).map(\.id))
+        let currentDestination = Set(try listWindows(destination).map(\.id))
+        let surviving = currentSource.union(currentDestination)
+        let misplacedSource = sourceIDs.intersection(surviving).subtracting(currentDestination)
+        let misplacedDestination = destinationIDs.intersection(surviving).subtracting(currentSource)
+        guard misplacedSource.isEmpty, misplacedDestination.isEmpty else {
+            throw GridSpacesError.invalidOutput(
+                command: "workspace-content exchange",
+                message: "AeroSpace did not assign every moved window to the expected workspace"
+            )
+        }
+    }
+
+    private func currentIDs(source: String, destination: String) throws -> Set<Int> {
+        Set(try listWindows(source).map(\.id))
+            .union(try listWindows(destination).map(\.id))
+    }
+
+    private func rollback(
+        sourceWindows: [WindowInfo],
+        destinationWindows: [WindowInfo],
+        source: String,
+        destination: String
+    ) {
+        for window in sourceWindows {
+            try? moveWindow(window.id, source)
+        }
+        for window in destinationWindows {
+            try? moveWindow(window.id, destination)
+        }
     }
 }

@@ -69,12 +69,15 @@ Maps hotkey combinations to commands. The TOML key is the hotkey and the value i
 ```toml
 [keys]
 h = 'left'
-shift-h = 'move-left'
+alt-h = 'move-workspace left'
+shift-h = 'move-to-display left'
 ```
 
 Hotkeys follow AeroSpace's syntax: modifiers and the key are joined with `-`. Valid modifiers are `shift`, `ctrl`, `alt`, and `cmd`. Special key names: `return`, `escape`, `space`, `tab`, `delete`.
 
 Any command not listed here falls back to its default hotkey. To disable a command entirely, omit it — there is no explicit "unbind" option.
+
+The former `move-left`, `move-right`, `move-up`, `move-down`, `move-next`, and `move-previous` command values are not supported. Use the argument-style commands below.
 
 ### Navigation commands
 
@@ -97,27 +100,42 @@ Navigation stops at the grid boundary unless `behavior.wrap` is enabled.
 | `cancel`  | Close the popup without switching workspaces. | `escape` |
 | `close-all` | Close all windows in the highlighted workspace. Asks for confirmation first unless `behavior.confirm_close_all` is `false`. | `x` |
 
-### Workspace move commands (directional mode)
+### Workspace-content movement
+
+These commands move all windows from the highlighted workspace through the configured grid. If the destination contains windows, the two window sets are swapped. If it is empty, the source windows move there and the source becomes empty. The highlight follows the moved source contents.
+
+| Command | Description | Default hotkey |
+|---------|-------------|----------------|
+| `move-workspace left`  | Move or swap the highlighted workspace contents left. | `alt-h` |
+| `move-workspace right` | Move or swap the highlighted workspace contents right. | `alt-l` |
+| `move-workspace up`    | Move or swap the highlighted workspace contents up. | `alt-k` |
+| `move-workspace down`  | Move or swap the highlighted workspace contents down. | `alt-j` |
+
+Movement skips blank grid cells and does not wrap. Overflow workspaces cannot be reordered. Window identity is preserved, but AeroSpace does not expose its complete tiling tree through the CLI, so nested containers, split ratios, and exact tile positions may be re-tiled.
+
+When all four movement bindings share one modifier set, holding exactly those modifiers shows a move-mode hint. With the defaults, holding only `Alt` shakes the workspace tiles. Different modifiers per direction disable the hint without disabling the shortcuts. macOS Reduce Motion replaces the shake with a static emphasis.
+
+### Move-to-display commands (directional mode)
 
 These commands move the highlighted workspace to the monitor in a given direction. They only have an effect when more than one monitor is connected. See `behavior.move_mode`.
 
 | Command | Description | Default hotkey |
 |---------|-------------|----------------|
-| `move-left`  | Move the highlighted workspace to the monitor to the left. | `shift-h` |
-| `move-right` | Move the highlighted workspace to the monitor to the right. | `shift-l` |
-| `move-up`    | Move the highlighted workspace to the monitor above. | `shift-k` |
-| `move-down`  | Move the highlighted workspace to the monitor below. | `shift-j` |
+| `move-to-display left`  | Move the highlighted workspace to the monitor to the left. | `shift-h` |
+| `move-to-display right` | Move the highlighted workspace to the monitor to the right. | `shift-l` |
+| `move-to-display up`    | Move the highlighted workspace to the monitor above. | `shift-k` |
+| `move-to-display down`  | Move the highlighted workspace to the monitor below. | `shift-j` |
 
-### Workspace move commands (cycle mode)
+### Move-to-display commands (cycle mode)
 
 These commands are active when `behavior.move_mode = "cycle"`. Instead of a spatial direction, they cycle the highlighted workspace through monitors in order.
 
 | Command | Description | Default hotkey |
 |---------|-------------|----------------|
-| `move-next`     | Move the highlighted workspace to the next monitor. | `shift-l` |
-| `move-previous` | Move the highlighted workspace to the previous monitor. | `shift-h` |
+| `move-to-display next`     | Move the highlighted workspace to the next monitor. | `shift-l` |
+| `move-to-display previous` | Move the highlighted workspace to the previous monitor. | `shift-h` |
 
-> **Note:** `move-next` and `move-previous` share their default hotkeys with `move-right` and `move-left`. Only the commands that match the active `move_mode` are used, so there is no actual conflict.
+> **Note:** The cycle commands share their default hotkeys with the directional display commands. Only the commands that match the active `move_mode` are used, so there is no conflict.
 
 ---
 
@@ -166,8 +184,8 @@ Controls how the workspace move commands behave when more than one monitor is co
 
 | Value | Behaviour |
 |-------|-----------|
-| `"directional"` | `move-left`, `move-right`, `move-up`, `move-down` send the workspace to the monitor in that spatial direction. |
-| `"cycle"` | `move-next` and `move-previous` cycle the workspace through monitors in order. |
+| `"directional"` | `move-to-display left/right/up/down` sends the workspace to the monitor in that spatial direction. |
+| `"cycle"` | `move-to-display next/previous` cycles the workspace through monitors in order. |
 
 **Default:** `"directional"`
 

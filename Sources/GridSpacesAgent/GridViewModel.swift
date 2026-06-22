@@ -11,6 +11,8 @@ final class GridViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var pendingCloseWorkspace: String?
+    @Published var isReorderingWorkspace = false
+    @Published var isWorkspaceMoveModeActive = false
 
     private(set) var config = GridSpacesConfig.defaults
     let iconResolver = AppIconResolver()
@@ -157,7 +159,7 @@ final class GridViewModel: ObservableObject {
         errorMessage = message
     }
 
-    func moveWorkspace(_ direction: Direction) {
+    func moveToDisplay(_ direction: Direction) {
         guard let highlightedWorkspace else { return }
         let mode = config.behavior.moveMode
         let target: String
@@ -179,6 +181,52 @@ final class GridViewModel: ObservableObject {
                 monitorCount: monitorCount
             )
         }
+    }
+
+    func moveWorkspaceContents(_ direction: Direction) {
+        guard !isReorderingWorkspace,
+              let source = highlightedWorkspace,
+              let destination = model.reorderDestination(
+                from: source,
+                direction: direction
+              )
+        else {
+            return
+        }
+
+        isReorderingWorkspace = true
+        errorMessage = nil
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                try AeroSpaceClient().exchangeWorkspaceContents(
+                    source: source,
+                    destination: destination
+                )
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.isReorderingWorkspace = false
+                    self.refresh(preferredHighlightedWorkspace: destination)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.isReorderingWorkspace = false
+                    self.refresh(preferredHighlightedWorkspace: source)
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    func updateWorkspaceMoveMode(heldModifiers: HotkeyModifiers) {
+        let expected = HotkeyModifiers.commonModifierSet(
+            for: config.keys.workspaceMovementHotkeys
+        )
+        isWorkspaceMoveModeActive = expected != nil && heldModifiers == expected
+    }
+
+    func clearWorkspaceMoveMode() {
+        isWorkspaceMoveModeActive = false
     }
 
     func monitorColor(for id: Int?) -> Color {

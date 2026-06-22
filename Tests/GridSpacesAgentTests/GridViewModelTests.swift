@@ -40,3 +40,17 @@ import Testing
 
     #expect(selection == "focused")
 }
+
+@MainActor
+@Test func workspaceMoveModeRequiresExactCommonModifiers() {
+    let viewModel = GridViewModel()
+
+    viewModel.updateWorkspaceMoveMode(heldModifiers: .option)
+    #expect(viewModel.isWorkspaceMoveModeActive)
+
+    viewModel.updateWorkspaceMoveMode(heldModifiers: [.option, .control])
+    #expect(!viewModel.isWorkspaceMoveModeActive)
+
+    viewModel.clearWorkspaceMoveMode()
+    #expect(!viewModel.isWorkspaceMoveModeActive)
+}

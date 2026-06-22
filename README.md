@@ -62,17 +62,21 @@ rows = [
 ]
 
 [keys]
-left = "h"
-down = "j"
-up = "k"
-right = "l"
-confirm = "return"
-cancel = "escape"
-close_all = "x"
-move_left = "shift+h"
-move_down = "shift+j"
-move_up = "shift+k"
-move_right = "shift+l"
+h = "left"
+j = "down"
+k = "up"
+l = "right"
+return = "confirm"
+escape = "cancel"
+x = "close-all"
+alt-h = "move-workspace left"
+alt-j = "move-workspace down"
+alt-k = "move-workspace up"
+alt-l = "move-workspace right"
+shift-h = "move-to-display left"
+shift-j = "move-to-display down"
+shift-k = "move-to-display up"
+shift-l = "move-to-display right"
 
 [keys.workspaces]
 "1" = "1"
@@ -145,9 +149,14 @@ and requires no AeroSpace source changes.
 - `Enter`: focus the highlighted workspace and close
 - `Esc`: close without switching
 - `x`: close all windows in the highlighted workspace; confirmation is on by default
+- `Alt+h/j/k/l`: move or swap all windows in the highlighted workspace through the configured grid
 - `Shift+h/j/k/l` or Shift+arrows: move the highlighted workspace to another display
 
-With one display, workspace moves are no-ops and all tiles share one outline
+Holding `Alt` with the default bindings shows workspace move mode. Exact AeroSpace
+tiling-tree preservation is unavailable through its public CLI, so moved windows
+retain their identities but complex layouts may be re-tiled.
+
+With one display, move-to-display commands are no-ops and all tiles share one outline
 color. In cycle mode, left/up means previous and right/down means next.
 
 ## Development

@@ -9,33 +9,53 @@ public struct KeyBindings: Codable, Equatable, Sendable {
     public var confirm: String
     public var cancel: String
     public var closeAll: String
-    public var moveLeft: String
-    public var moveDown: String
-    public var moveUp: String
-    public var moveRight: String
-    public var moveNext: String
-    public var movePrevious: String
+    public var moveWorkspaceLeft: String
+    public var moveWorkspaceDown: String
+    public var moveWorkspaceUp: String
+    public var moveWorkspaceRight: String
+    public var moveToDisplayLeft: String
+    public var moveToDisplayDown: String
+    public var moveToDisplayUp: String
+    public var moveToDisplayRight: String
+    public var moveToDisplayNext: String
+    public var moveToDisplayPrevious: String
     public var workspaces: [String: String]
 
     enum CodingKeys: String, CodingKey {
         case left, down, up, right, confirm, cancel
         case closeAll = "close_all"
-        case moveLeft = "move_left"
-        case moveDown = "move_down"
-        case moveUp = "move_up"
-        case moveRight = "move_right"
-        case moveNext = "move_next"
-        case movePrevious = "move_previous"
+        case moveWorkspaceLeft = "move_workspace_left"
+        case moveWorkspaceDown = "move_workspace_down"
+        case moveWorkspaceUp = "move_workspace_up"
+        case moveWorkspaceRight = "move_workspace_right"
+        case moveToDisplayLeft = "move_to_display_left"
+        case moveToDisplayDown = "move_to_display_down"
+        case moveToDisplayUp = "move_to_display_up"
+        case moveToDisplayRight = "move_to_display_right"
+        case moveToDisplayNext = "move_to_display_next"
+        case moveToDisplayPrevious = "move_to_display_previous"
         case workspaces
     }
 
     public static let defaults = KeyBindings(
         left: "h", down: "j", up: "k", right: "l",
         confirm: "return", cancel: "escape", closeAll: "x",
-        moveLeft: "shift-h", moveDown: "shift-j", moveUp: "shift-k", moveRight: "shift-l",
-        moveNext: "shift-l", movePrevious: "shift-h",
+        moveWorkspaceLeft: "alt-h", moveWorkspaceDown: "alt-j",
+        moveWorkspaceUp: "alt-k", moveWorkspaceRight: "alt-l",
+        moveToDisplayLeft: "shift-h", moveToDisplayDown: "shift-j",
+        moveToDisplayUp: "shift-k", moveToDisplayRight: "shift-l",
+        moveToDisplayNext: "shift-l", moveToDisplayPrevious: "shift-h",
         workspaces: [:]
     )
+
+    public var workspaceMovementHotkeys: [String] {
+        [
+            moveWorkspaceLeft,
+            moveWorkspaceDown,
+            moveWorkspaceUp,
+            moveWorkspaceRight,
+        ]
+    }
 }
 
 public struct Behavior: Codable, Equatable, Sendable {
@@ -212,12 +232,16 @@ public enum ConfigLoader {
         "confirm": \.confirm,
         "cancel": \.cancel,
         "close-all": \.closeAll,
-        "move-left": \.moveLeft,
-        "move-down": \.moveDown,
-        "move-up": \.moveUp,
-        "move-right": \.moveRight,
-        "move-next": \.moveNext,
-        "move-previous": \.movePrevious,
+        "move-workspace left": \.moveWorkspaceLeft,
+        "move-workspace down": \.moveWorkspaceDown,
+        "move-workspace up": \.moveWorkspaceUp,
+        "move-workspace right": \.moveWorkspaceRight,
+        "move-to-display left": \.moveToDisplayLeft,
+        "move-to-display down": \.moveToDisplayDown,
+        "move-to-display up": \.moveToDisplayUp,
+        "move-to-display right": \.moveToDisplayRight,
+        "move-to-display next": \.moveToDisplayNext,
+        "move-to-display previous": \.moveToDisplayPrevious,
     ]
 
     private static func merge(_ document: ConfigDocument) -> ConfigLoadResult {

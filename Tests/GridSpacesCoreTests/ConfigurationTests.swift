@@ -123,7 +123,7 @@ import Testing
     let url = try temporaryConfig(
         """
         [keys]
-        shift-h = 'move-left'
+        shift-h = 'move-to-display left'
 
         [behavior]
         move_mode = "teleport"
@@ -131,7 +131,7 @@ import Testing
     )
     let result = ConfigLoader.load(from: url)
 
-    #expect(result.config.keys.moveLeft == "shift-h")
+    #expect(result.config.keys.moveToDisplayLeft == "shift-h")
     #expect(result.config.behavior.moveMode == .directional)
     #expect(result.warnings.count == 1)
 }
@@ -140,13 +140,13 @@ import Testing
     let url = try temporaryConfig(
         """
         [keys]
-        "shift+h" = 'move-left'
+        "shift+h" = 'move-to-display left'
         j = 'down'
         """
     )
     let result = ConfigLoader.load(from: url)
 
-    #expect(result.config.keys.moveLeft == KeyBindings.defaults.moveLeft)
+    #expect(result.config.keys.moveToDisplayLeft == KeyBindings.defaults.moveToDisplayLeft)
     #expect(result.config.keys.down == "j")
     #expect(result.warnings.count == 1)
     #expect(result.warnings[0].contains("shift+h"))
@@ -189,13 +189,71 @@ import Testing
     let url = try temporaryConfig(
         """
         [keys]
-        ctrl-shift-j = 'move-down'
+        ctrl-shift-j = 'move-workspace down'
         """
     )
     let result = ConfigLoader.load(from: url)
 
-    #expect(result.config.keys.moveDown == "ctrl-shift-j")
+    #expect(result.config.keys.moveWorkspaceDown == "ctrl-shift-j")
     #expect(result.warnings.isEmpty)
+}
+
+@Test func parsesCanonicalWorkspaceAndDisplayMovementCommands() throws {
+    let url = try temporaryConfig(
+        """
+        [keys]
+        ctrl-h = 'move-workspace left'
+        ctrl-j = 'move-workspace down'
+        cmd-k = 'move-to-display up'
+        cmd-l = 'move-to-display next'
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.keys.moveWorkspaceLeft == "ctrl-h")
+    #expect(result.config.keys.moveWorkspaceDown == "ctrl-j")
+    #expect(result.config.keys.moveToDisplayUp == "cmd-k")
+    #expect(result.config.keys.moveToDisplayNext == "cmd-l")
+    #expect(result.warnings.isEmpty)
+}
+
+@Test func removedMovementCommandsAreRejected() throws {
+    let url = try temporaryConfig(
+        """
+        [keys]
+        ctrl-h = 'move-left'
+        ctrl-l = 'move-next'
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.keys.moveToDisplayLeft == KeyBindings.defaults.moveToDisplayLeft)
+    #expect(result.config.keys.moveToDisplayNext == KeyBindings.defaults.moveToDisplayNext)
+    #expect(result.warnings.count == 2)
+    #expect(result.warnings.allSatisfy { $0.contains("unknown command") })
+}
+
+@Test func commonWorkspaceMovementModifiersRequireExactSharedSet() {
+    #expect(
+        HotkeyModifiers.commonModifierSet(
+            for: ["alt-h", "alt-j", "alt-k", "alt-l"]
+        ) == .option
+    )
+    #expect(
+        HotkeyModifiers.commonModifierSet(
+            for: ["ctrl-alt-h", "alt-ctrl-j", "ctrl-alt-k", "alt-ctrl-l"]
+        ) == [.control, .option]
+    )
+    #expect(
+        HotkeyModifiers.commonModifierSet(
+            for: ["alt-h", "ctrl-j", "alt-k", "alt-l"]
+        ) == nil
+    )
+    #expect(
+        HotkeyModifiers.commonModifierSet(
+            for: ["h", "j", "k", "l"]
+        ) == nil
+    )
 }
 
 @Test func workspaceBindingsAcceptModifierKeys() throws {

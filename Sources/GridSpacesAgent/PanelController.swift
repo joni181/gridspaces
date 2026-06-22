@@ -32,6 +32,7 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     func close() {
         openRequestID &+= 1
+        viewModel.clearWorkspaceMoveMode()
         panel?.orderOut(nil)
         removeKeyMonitor()
     }
@@ -71,13 +72,22 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     func windowDidResignKey(_ notification: Notification) {
+        viewModel.clearWorkspaceMoveMode()
         close()
     }
 
     private func installKeyMonitor() {
         removeKeyMonitor()
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        keyMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.keyDown, .flagsChanged]
+        ) { [weak self] event in
             guard let self, self.isOpen, self.panel?.isKeyWindow == true else { return event }
+            if event.type == .flagsChanged {
+                self.viewModel.updateWorkspaceMoveMode(
+                    heldModifiers: self.hotkeyModifiers(event.modifierFlags)
+                )
+                return event
+            }
             self.handle(event)
             return nil
         }
@@ -175,12 +185,16 @@ final class PanelController: NSObject, NSWindowDelegate {
             return
         }
 
-        if let direction = navigationDirection(token: token, event: event) {
-            viewModel.navigate(direction)
+        if let direction = workspaceMoveDirection(token: token) {
+            viewModel.moveWorkspaceContents(direction)
             return
         }
-        if let direction = moveDirection(token: token, event: event) {
-            viewModel.moveWorkspace(direction)
+        if let direction = displayMoveDirection(token: token, event: event) {
+            viewModel.moveToDisplay(direction)
+            return
+        }
+        if let direction = navigationDirection(token: token, event: event) {
+            viewModel.navigate(direction)
             return
         }
 
@@ -210,7 +224,8 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func navigationDirection(token: String, event: NSEvent) -> Direction? {
-        guard !event.modifierFlags.contains(.shift) else { return nil }
+        let modifiers = hotkeyModifiers(event.modifierFlags)
+        guard modifiers.isEmpty else { return nil }
         if token == viewModel.config.keys.left || event.keyCode == 123 { return .left }
         if token == viewModel.config.keys.down || event.keyCode == 125 { return .down }
         if token == viewModel.config.keys.up || event.keyCode == 126 { return .up }
@@ -218,15 +233,23 @@ final class PanelController: NSObject, NSWindowDelegate {
         return nil
     }
 
-    private func moveDirection(token: String, event: NSEvent) -> Direction? {
+    private func workspaceMoveDirection(token: String) -> Direction? {
+        if token == viewModel.config.keys.moveWorkspaceLeft { return .left }
+        if token == viewModel.config.keys.moveWorkspaceDown { return .down }
+        if token == viewModel.config.keys.moveWorkspaceUp { return .up }
+        if token == viewModel.config.keys.moveWorkspaceRight { return .right }
+        return nil
+    }
+
+    private func displayMoveDirection(token: String, event: NSEvent) -> Direction? {
         if viewModel.config.behavior.moveMode == .cycle {
-            if token == viewModel.config.keys.movePrevious { return .left }
-            if token == viewModel.config.keys.moveNext { return .right }
+            if token == viewModel.config.keys.moveToDisplayPrevious { return .left }
+            if token == viewModel.config.keys.moveToDisplayNext { return .right }
         }
-        if token == viewModel.config.keys.moveLeft || (event.keyCode == 123 && event.modifierFlags.contains(.shift)) { return .left }
-        if token == viewModel.config.keys.moveDown || (event.keyCode == 125 && event.modifierFlags.contains(.shift)) { return .down }
-        if token == viewModel.config.keys.moveUp || (event.keyCode == 126 && event.modifierFlags.contains(.shift)) { return .up }
-        if token == viewModel.config.keys.moveRight || (event.keyCode == 124 && event.modifierFlags.contains(.shift)) { return .right }
+        if token == viewModel.config.keys.moveToDisplayLeft || (event.keyCode == 123 && event.modifierFlags.contains(.shift)) { return .left }
+        if token == viewModel.config.keys.moveToDisplayDown || (event.keyCode == 125 && event.modifierFlags.contains(.shift)) { return .down }
+        if token == viewModel.config.keys.moveToDisplayUp || (event.keyCode == 126 && event.modifierFlags.contains(.shift)) { return .up }
+        if token == viewModel.config.keys.moveToDisplayRight || (event.keyCode == 124 && event.modifierFlags.contains(.shift)) { return .right }
         return nil
     }
 
@@ -241,6 +264,15 @@ final class PanelController: NSObject, NSWindowDelegate {
         if flags.contains(.control) { modifiers.insert(.control) }
         if flags.contains(.shift) { modifiers.insert(.shift) }
         if flags.contains(.function) { modifiers.insert(.function) }
+        return modifiers
+    }
+
+    private func hotkeyModifiers(_ flags: NSEvent.ModifierFlags) -> HotkeyModifiers {
+        var modifiers: HotkeyModifiers = []
+        if flags.contains(.command) { modifiers.insert(.command) }
+        if flags.contains(.option) { modifiers.insert(.option) }
+        if flags.contains(.control) { modifiers.insert(.control) }
+        if flags.contains(.shift) { modifiers.insert(.shift) }
         return modifiers
     }
 

@@ -80,3 +80,28 @@ import Testing
 
     #expect(model.workspace(from: "1", direction: .down, wrap: false) == "Y")
 }
+
+@Test func reorderDestinationSkipsGapsWithoutWrapping() {
+    let model = GridModel(
+        config: GridSpacesConfig(grid: [["1", nil, "3"], ["Q", nil, "E"]]),
+        states: []
+    )
+
+    #expect(model.reorderDestination(from: "1", direction: .right) == "3")
+    #expect(model.reorderDestination(from: "3", direction: .left) == "1")
+    #expect(model.reorderDestination(from: "1", direction: .down) == "Q")
+    #expect(model.reorderDestination(from: "3", direction: .right) == nil)
+}
+
+@Test func overflowWorkspaceCannotBeReordered() {
+    let overflow = WorkspaceState(
+        name: "Y",
+        windows: [WindowInfo(id: 1, appName: "Notes", title: "Note")]
+    )
+    let model = GridModel(
+        config: GridSpacesConfig(grid: [["1"]]),
+        states: [overflow]
+    )
+
+    #expect(model.reorderDestination(from: "Y", direction: .up) == nil)
+}
