@@ -46,6 +46,7 @@ y = 'Y'
 x = 'X'
 c = 'C'
 v = 'V'
+b = 'B'
 
 
 [behavior]
