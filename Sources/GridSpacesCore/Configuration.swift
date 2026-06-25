@@ -81,13 +81,16 @@ public struct Behavior: Codable, Equatable, Sendable {
 
 public struct Appearance: Codable, Equatable, Sendable {
     public var monitorColors: [String]
+    public var showTreePanel: Bool
 
-    public init(monitorColors: [String]) {
+    public init(monitorColors: [String], showTreePanel: Bool) {
         self.monitorColors = monitorColors
+        self.showTreePanel = showTreePanel
     }
 
     enum CodingKeys: String, CodingKey {
         case monitorColors = "monitor_colors"
+        case showTreePanel = "show_tree_panel"
     }
 
     public static let defaults = Appearance(
@@ -98,7 +101,8 @@ public struct Appearance: Codable, Equatable, Sendable {
             "#FF2D55",
             "#AF52DE",
             "#FFCC00",
-        ]
+        ],
+        showTreePanel: false
     )
 }
 
@@ -185,9 +189,11 @@ private struct PartialBehavior: Decodable {
 
 private struct PartialAppearance: Decodable {
     var monitorColors: [String]?
+    var showTreePanel: Bool?
 
     enum CodingKeys: String, CodingKey {
         case monitorColors = "monitor_colors"
+        case showTreePanel = "show_tree_panel"
     }
 }
 
@@ -323,6 +329,10 @@ public enum ConfigLoader {
                         + "with every color in #RRGGBB format; using the default monitor colors."
                 )
             }
+        }
+
+        if let showTreePanel = document.appearance?.showTreePanel {
+            result.appearance.showTreePanel = showTreePanel
         }
 
         return ConfigLoadResult(config: result, warnings: warnings)

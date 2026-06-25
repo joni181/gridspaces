@@ -38,6 +38,17 @@ The default shown above represents a QWERTZ keyboard layout. If you are using QW
 
 ## `[appearance]`
 
+### `show_tree_panel`
+
+When `true`, a second panel opens alongside the main GridSpaces popup showing the windows of the currently highlighted workspace. The panel lists each window with its application icon and title. It closes together with the main popup.
+
+**Default:** `false`
+
+```toml
+[appearance]
+show_tree_panel = true
+```
+
 ### `monitor_colors`
 
 An ordered array of colors used for workspace tile outlines. Each value must be a six-digit RGB hex code in `#RRGGBB` form. Hex digits are case-insensitive.

@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "reinstall",
+            "type": "shell",
+            "command": "./scripts/install.sh",
+            "inAgents": true
+        }
+    ]
+}

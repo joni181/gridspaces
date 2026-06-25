@@ -1,0 +1,44 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:gridspaces}",
+            "name": "Debug gridspaces",
+            "target": "gridspaces",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug gridspaces"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:gridspaces}",
+            "name": "Release gridspaces",
+            "target": "gridspaces",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release gridspaces"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:gridspaces}",
+            "name": "Debug GridSpacesAgent",
+            "target": "GridSpacesAgent",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug GridSpacesAgent"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:gridspaces}",
+            "name": "Release GridSpacesAgent",
+            "target": "GridSpacesAgent",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release GridSpacesAgent"
+        }
+    ]
+}
