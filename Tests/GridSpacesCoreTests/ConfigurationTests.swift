@@ -33,7 +33,20 @@ import Testing
             "#FFCC00",
         ]
     )
+    #expect(Appearance.defaults.showTreePanel == false)
     #expect(GridSpacesConfig.defaults.appearance == .defaults)
+}
+
+@Test func parsesShowTreePanel() throws {
+    let url = try temporaryConfig(
+        """
+        [appearance]
+        show_tree_panel = true
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+    #expect(result.config.appearance.showTreePanel == true)
+    #expect(result.warnings.isEmpty)
 }
 
 @Test func parsesGridKeysAndBehavior() throws {

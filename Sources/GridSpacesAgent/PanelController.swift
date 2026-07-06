@@ -6,6 +6,7 @@ import SwiftUI
 final class PanelController: NSObject, NSWindowDelegate {
     private let viewModel = GridViewModel()
     private var panel: NSPanel?
+    private var treePanel: NSPanel?
     private var keyMonitor: Any?
     private var openRequestID: UInt = 0
 
@@ -25,6 +26,16 @@ final class PanelController: NSObject, NSWindowDelegate {
             guard let self, self.openRequestID == requestID else { return }
             self.positionPanelAtPointer()
             self.panel?.makeKeyAndOrderFront(nil)
+            if self.viewModel.config.appearance.showTreePanel {
+                self.ensureTreePanel()
+                self.positionTreePanel()
+                self.treePanel?.orderFront(nil)
+                // Re-center after SwiftUI completes its layout pass.
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.openRequestID == requestID else { return }
+                    self.positionTreePanel()
+                }
+            }
             NSApp.activate(ignoringOtherApps: true)
             self.installKeyMonitor()
         }
@@ -34,6 +45,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         openRequestID &+= 1
         viewModel.clearWorkspaceMoveMode()
         panel?.orderOut(nil)
+        treePanel?.orderOut(nil)
         removeKeyMonitor()
     }
 
@@ -44,6 +56,13 @@ final class PanelController: NSObject, NSWindowDelegate {
     func reloadConfiguration() {
         viewModel.reloadConfiguration()
         if isOpen {
+            if viewModel.config.appearance.showTreePanel {
+                ensureTreePanel()
+                positionTreePanel()
+                treePanel?.orderFront(nil)
+            } else {
+                treePanel?.orderOut(nil)
+            }
             viewModel.refresh()
         }
     }
@@ -127,6 +146,38 @@ final class PanelController: NSObject, NSWindowDelegate {
         newPanel.isOpaque = false
         newPanel.hasShadow = true
         panel = newPanel
+
+        if viewModel.config.appearance.showTreePanel {
+            ensureTreePanel()
+        }
+    }
+
+    private let treePanelWidth: CGFloat = 280
+
+    private func ensureTreePanel() {
+        guard treePanel == nil else { return }
+
+        let hostingController = NSHostingController(
+            rootView: WorkspaceTreeView(viewModel: viewModel)
+        )
+        let initialRect = CGRect(x: 0, y: 0, width: treePanelWidth, height: 400)
+        let newPanel = NSPanel(
+            contentRect: initialRect,
+            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        newPanel.titleVisibility = .hidden
+        newPanel.titlebarAppearsTransparent = true
+        newPanel.isMovableByWindowBackground = true
+        newPanel.level = .floating
+        newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        newPanel.isReleasedWhenClosed = false
+        newPanel.contentViewController = hostingController
+        newPanel.backgroundColor = .clear
+        newPanel.isOpaque = false
+        newPanel.hasShadow = true
+        treePanel = newPanel
     }
 
     private func presentError(_ message: String) {
@@ -156,11 +207,53 @@ final class PanelController: NSObject, NSWindowDelegate {
             return
         }
 
+        let visibleFrame = screens[targetIndex].visibleFrame
         let origin = PopupPlacement.centeredOrigin(
             windowSize: panel.frame.size,
-            visibleFrame: screens[targetIndex].visibleFrame
+            visibleFrame: visibleFrame
         )
         panel.setFrameOrigin(origin)
+    }
+
+    private func positionTreePanel() {
+        guard let panel, let treePanel else { return }
+
+        let gap: CGFloat = 8
+        let mainFrame = panel.frame
+        let width = treePanelWidth
+        // Use actual SwiftUI-computed height if available; fall back to a reasonable default.
+        let height = treePanel.frame.height > 0 ? treePanel.frame.height : 400
+
+        let screens = NSScreen.screens
+        let mainScreenIndex = NSScreen.main.flatMap { mainScreen in
+            screens.firstIndex(where: { $0 === mainScreen })
+        }
+        guard let targetIndex = PopupPlacement.targetScreenIndex(
+            pointerLocation: NSEvent.mouseLocation,
+            screenFrames: screens.map(\.frame),
+            mainScreenIndex: mainScreenIndex
+        ) else {
+            return
+        }
+        let visibleFrame = screens[targetIndex].visibleFrame
+
+        let rightX = mainFrame.maxX + gap
+        let leftX = mainFrame.minX - width - gap
+
+        let x: CGFloat
+        if rightX + width <= visibleFrame.maxX {
+            x = rightX
+        } else if leftX >= visibleFrame.minX {
+            x = leftX
+        } else {
+            x = mainFrame.midX - width / 2
+        }
+
+        // Vertically center on the main panel, clamped within the screen.
+        let centeredY = mainFrame.midY - height / 2
+        let y = max(visibleFrame.minY, min(centeredY, visibleFrame.maxY - height))
+
+        treePanel.setFrame(CGRect(x: x, y: y, width: width, height: height), display: true)
     }
 
     private func handle(_ event: NSEvent) {
