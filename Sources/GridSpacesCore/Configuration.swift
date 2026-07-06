@@ -83,7 +83,7 @@ public struct Appearance: Codable, Equatable, Sendable {
     public var monitorColors: [String]
     public var showTreePanel: Bool
 
-    public init(monitorColors: [String], showTreePanel: Bool) {
+    public init(monitorColors: [String], showTreePanel: Bool = false) {
         self.monitorColors = monitorColors
         self.showTreePanel = showTreePanel
     }
