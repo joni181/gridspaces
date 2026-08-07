@@ -30,9 +30,10 @@ import Testing
     )
     let viewModel = GridViewModel(config: config)
     viewModel.monitors = [MonitorInfo(id: 10, name: "Only")]
+    let noMonitorID: Int? = nil
 
     #expect(viewModel.monitorColorHex(for: 10) == "#123456")
-    #expect(viewModel.monitorColorHex(for: nil) == "#123456")
+    #expect(viewModel.monitorColorHex(for: noMonitorID) == "#123456")
 
     viewModel.monitors.append(MonitorInfo(id: 20, name: "Second"))
     #expect(viewModel.monitorColorHex(for: 999) == "#123456")
@@ -45,8 +46,9 @@ import Testing
         appearance: Appearance(monitorColors: [])
     )
     let viewModel = GridViewModel(config: config)
+    let noMonitorID: Int? = nil
 
-    #expect(viewModel.monitorColorHex(for: nil) == Appearance.defaults.monitorColors[0])
+    #expect(viewModel.monitorColorHex(for: noMonitorID) == Appearance.defaults.monitorColors[0])
 }
 
 @MainActor
