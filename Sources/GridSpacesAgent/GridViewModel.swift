@@ -13,6 +13,7 @@ final class GridViewModel: ObservableObject {
     @Published var pendingCloseWorkspace: String?
     @Published var isReorderingWorkspace = false
     @Published var isWorkspaceMoveModeActive = false
+    @Published var isQuickNavigateActive = false
 
     private(set) var config = GridSpacesConfig.defaults
     let iconResolver = AppIconResolver()
@@ -34,6 +35,7 @@ final class GridViewModel: ObservableObject {
 
     func refresh(
         preferredHighlightedWorkspace: String? = nil,
+        quickNavigate: Direction? = nil,
         onFocusedWorkspaceReady: (() -> Void)? = nil
     ) {
         refreshID &+= 1
@@ -45,6 +47,11 @@ final class GridViewModel: ObservableObject {
             highlightedWorkspace = nil
         }
         let config = config
+        if quickNavigate != nil {
+            // The destination is derived from grid geometry before the snapshot arrives, so
+            // rebuild the cached model against the freshly loaded configuration first.
+            model = GridModel(config: config, states: model.tiles.map(\.workspace))
+        }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let client: AeroSpaceClient
             let focusedWorkspace: String
@@ -64,12 +71,21 @@ final class GridViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self, self.refreshID == requestID else { return }
                 self.focusedWorkspace = focusedWorkspace
-                self.highlightedWorkspace = Self.highlightedWorkspace(
-                    preferred: preferredHighlightedWorkspace,
-                    focused: focusedWorkspace,
-                    in: self.model,
-                    fallbackToOrigin: false
-                )
+                if let quickNavigate {
+                    self.highlightedWorkspace = Self.quickNavigateDestination(
+                        from: focusedWorkspace,
+                        direction: quickNavigate,
+                        in: self.model,
+                        wrap: config.behavior.wrap
+                    )
+                } else {
+                    self.highlightedWorkspace = Self.highlightedWorkspace(
+                        preferred: preferredHighlightedWorkspace,
+                        focused: focusedWorkspace,
+                        in: self.model,
+                        fallbackToOrigin: false
+                    )
+                }
                 onFocusedWorkspaceReady?()
             }
 
@@ -81,8 +97,13 @@ final class GridViewModel: ObservableObject {
                     self.model = model
                     self.monitors = snapshot.monitors
                     self.focusedWorkspace = snapshot.focusedWorkspace
+                    // Quick-navigate already moved the highlight, and the user may have moved
+                    // it further while the snapshot was loading; keep where they are.
+                    let preferred = quickNavigate == nil
+                        ? preferredHighlightedWorkspace
+                        : (self.highlightedWorkspace ?? preferredHighlightedWorkspace)
                     self.highlightedWorkspace = Self.highlightedWorkspace(
-                        preferred: preferredHighlightedWorkspace,
+                        preferred: preferred,
                         focused: snapshot.focusedWorkspace,
                         in: model,
                         fallbackToOrigin: true
@@ -229,6 +250,13 @@ final class GridViewModel: ObservableObject {
         isWorkspaceMoveModeActive = false
     }
 
+    /// True once quick-navigate has a destination that releasing the modifiers can commit.
+    /// A pending close-all confirmation also blocks it, so a release never answers a
+    /// destructive prompt the user did not mean to confirm.
+    var canCommitQuickNavigate: Bool {
+        highlightedWorkspace != nil && errorMessage == nil && pendingCloseWorkspace == nil
+    }
+
     func monitorColor(for id: Int?) -> Color {
         Color(hexRGB: monitorColorHex(for: id))
     }
@@ -273,6 +301,25 @@ final class GridViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    /// Tile a quick-navigate step lands on. Falls back to the focused workspace when the
+    /// grid has no neighbour in that direction, so the highlight is never lost.
+    static func quickNavigateDestination(
+        from focused: String,
+        direction: Direction,
+        in model: GridModel,
+        wrap: Bool
+    ) -> String? {
+        guard model.tile(named: focused) != nil else {
+            return model.originWorkspace
+        }
+        return model.workspace(
+            from: focused,
+            direction: direction,
+            wrap: wrap,
+            fallbackFromOverflow: true
+        ) ?? focused
     }
 
     static func highlightedWorkspace(

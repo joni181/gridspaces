@@ -3,7 +3,7 @@
 GridSpaces is a keyboard-first, Mission Control-style workspace overview for
 [AeroSpace](https://github.com/nikitabobko/AeroSpace). It adds a configurable 2D
 workspace grid, application icons, directional navigation, workspace actions,
-and popup-free directional switching without modifying AeroSpace.
+and hold-to-switch quick navigation without modifying AeroSpace.
 
 This is the first runnable version. It supports macOS 13 or newer and AeroSpace 0.20.3-Beta or newer. It uses AeroSpace's CLI on demand and does not poll in the background.
 No Screen Recording or Accessibility permission is required by GridSpaces.
@@ -77,6 +77,10 @@ shift-h = "move-to-display left"
 shift-j = "move-to-display down"
 shift-k = "move-to-display up"
 shift-l = "move-to-display right"
+ctrl-alt-shift-h = "quick-navigate left"
+ctrl-alt-shift-j = "quick-navigate down"
+ctrl-alt-shift-k = "quick-navigate up"
+ctrl-alt-shift-l = "quick-navigate right"
 
 [keys.workspaces]
 "1" = "1"
@@ -118,13 +122,14 @@ the GridSpaces rows. Keyboard-shaped names such as
 gridspaces open
 gridspaces toggle
 gridspaces close
-gridspaces focus --direction left|down|up|right
+gridspaces quick-navigate left|down|up|right
 gridspaces reload-config
 ```
 
 The resident app is an `LSUIElement` menu-bar agent. The CLI starts it when
 necessary and sends local distributed notifications for instant popup control.
-Directional focus commands are headless and query AeroSpace only for that command.
+Every command is handled by the resident agent, which keeps the grid layout in
+memory instead of re-reading it from AeroSpace on each keypress.
 
 ## AeroSpace bindings
 
@@ -133,14 +138,28 @@ Add bindings like these to `~/.aerospace.toml`:
 ```toml
 [mode.main.binding]
 alt-tab = 'exec-and-forget gridspaces toggle'
-ctrl-alt-h = 'exec-and-forget gridspaces focus --direction left'
-ctrl-alt-j = 'exec-and-forget gridspaces focus --direction down'
-ctrl-alt-k = 'exec-and-forget gridspaces focus --direction up'
-ctrl-alt-l = 'exec-and-forget gridspaces focus --direction right'
+ctrl-alt-shift-h = 'exec-and-forget gridspaces quick-navigate left'
+ctrl-alt-shift-j = 'exec-and-forget gridspaces quick-navigate down'
+ctrl-alt-shift-k = 'exec-and-forget gridspaces quick-navigate up'
+ctrl-alt-shift-l = 'exec-and-forget gridspaces quick-navigate right'
 ```
 
 Then run `aerospace reload-config`. GridSpaces does not register global hotkeys
 and requires no AeroSpace source changes.
+
+Keep the quick-navigate hotkeys identical in `~/.aerospace.toml` and in the
+GridSpaces `[keys]` table: AeroSpace triggers them, and GridSpaces reads them to
+learn which modifiers end the gesture when released.
+
+## Quick navigate
+
+`ctrl-alt-shift-h/j/k/l` opens the grid with the highlight already on the
+neighbouring workspace. Keep the modifiers held to step further — with the
+quick-navigate keys themselves, or with `h/j/k/l` and the arrows — and release
+them to switch to the highlighted workspace. `Esc` cancels.
+
+One keypress therefore replaces opening the grid, navigating, and confirming;
+each additional tile costs one more keypress.
 
 ## In-grid controls
 
@@ -151,6 +170,7 @@ and requires no AeroSpace source changes.
 - `x`: close all windows in the highlighted workspace; confirmation is on by default
 - `Alt+h/j/k/l`: move or swap all windows in the highlighted workspace through the configured grid
 - `Shift+h/j/k/l` or Shift+arrows: move the highlighted workspace to another display
+- `Ctrl+Alt+Shift+h/j/k/l`: quick-navigate; switches on modifier release
 
 Holding `Alt` with the default bindings shows workspace move mode. Exact AeroSpace
 tiling-tree preservation is unavailable through its public CLI, so moved windows

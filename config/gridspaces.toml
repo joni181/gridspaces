@@ -25,6 +25,10 @@ shift-h = 'move-to-display left'
 shift-j = 'move-to-display down'
 shift-k = 'move-to-display up'
 shift-l = 'move-to-display right'
+ctrl-alt-shift-h = 'quick-navigate left'
+ctrl-alt-shift-j = 'quick-navigate down'
+ctrl-alt-shift-k = 'quick-navigate up'
+ctrl-alt-shift-l = 'quick-navigate right'
 
 [keys.workspaces]
 1 = '1'

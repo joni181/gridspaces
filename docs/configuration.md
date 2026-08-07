@@ -137,6 +137,43 @@ These commands move the highlighted workspace to the monitor in a given directio
 | `move-to-display up`    | Move the highlighted workspace to the monitor above. | `shift-k` |
 | `move-to-display down`  | Move the highlighted workspace to the monitor below. | `shift-j` |
 
+### Quick-navigate commands
+
+These are the only `[keys]` entries that are also global shortcuts. AeroSpace fires them
+(see the binding example below); GridSpaces reads them to learn which modifiers you are
+holding, and applies them again as in-grid bindings while the popup has key focus.
+
+| Command | Description | Default hotkey |
+|---------|-------------|----------------|
+| `quick-navigate left`  | Open the popup with the highlight one cell to the left. | `ctrl-alt-shift-h` |
+| `quick-navigate right` | Open the popup with the highlight one cell to the right. | `ctrl-alt-shift-l` |
+| `quick-navigate up`    | Open the popup with the highlight one cell up. | `ctrl-alt-shift-k` |
+| `quick-navigate down`  | Open the popup with the highlight one cell down. | `ctrl-alt-shift-j` |
+
+The popup opens with the highlight already moved, and the workspace switch happens when you
+release the modifiers — no `Enter` needed. While you keep them held, pressing the
+quick-navigate hotkeys again, or the navigation keys and arrows with those modifiers held,
+moves the highlight further. `Esc` cancels the whole gesture. Releasing before the popup has
+appeared still switches, so a quick tap works like a plain directional switch.
+
+Add the matching AeroSpace bindings to `~/.aerospace.toml`:
+
+```toml
+[mode.main.binding]
+ctrl-alt-shift-h = 'exec-and-forget gridspaces quick-navigate left'
+ctrl-alt-shift-j = 'exec-and-forget gridspaces quick-navigate down'
+ctrl-alt-shift-k = 'exec-and-forget gridspaces quick-navigate up'
+ctrl-alt-shift-l = 'exec-and-forget gridspaces quick-navigate right'
+```
+
+If you rebind quick-navigate, change it in both files: AeroSpace triggers the shortcut, and
+GridSpaces uses the `[keys]` entry to decide which modifier release ends the gesture. A
+quick-navigate hotkey with no modifier has nothing to release, so GridSpaces reports a
+warning and leaves the popup open until you confirm or cancel.
+
+Whether quick-navigate wraps at the grid edges follows `behavior.wrap`, the same setting used
+by in-grid navigation.
+
 ### Move-to-display commands (cycle mode)
 
 These commands are active when `behavior.move_mode = "cycle"`. Instead of a spatial direction, they cycle the highlighted workspace through monitors in order.

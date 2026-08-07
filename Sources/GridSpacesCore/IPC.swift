@@ -6,6 +6,29 @@ public enum AgentCommand: String, Sendable {
     case close
     case toggle
     case reloadConfig = "reload-config"
+    case quickNavigateLeft = "quick-navigate left"
+    case quickNavigateDown = "quick-navigate down"
+    case quickNavigateUp = "quick-navigate up"
+    case quickNavigateRight = "quick-navigate right"
+
+    public static func quickNavigate(_ direction: Direction) -> AgentCommand {
+        switch direction {
+        case .left: return .quickNavigateLeft
+        case .down: return .quickNavigateDown
+        case .up: return .quickNavigateUp
+        case .right: return .quickNavigateRight
+        }
+    }
+
+    public var quickNavigateDirection: Direction? {
+        switch self {
+        case .quickNavigateLeft: return .left
+        case .quickNavigateDown: return .down
+        case .quickNavigateUp: return .up
+        case .quickNavigateRight: return .right
+        case .open, .close, .toggle, .reloadConfig: return nil
+        }
+    }
 }
 
 public enum GridSpacesIPC {

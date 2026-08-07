@@ -9,6 +9,11 @@ final class PanelController: NSObject, NSWindowDelegate {
     private var treePanel: NSPanel?
     private var keyMonitor: Any?
     private var openRequestID: UInt = 0
+    private var quickNavigateModifiers: HotkeyModifiers?
+    private var quickNavigateGeneration: UInt = 0
+    private var isQuickNavigateOpening = false
+    private var pendingQuickNavigateSteps: [Direction] = []
+    private let quickNavigatePollInterval: TimeInterval = 0.03
 
     override init() {
         super.init()
@@ -18,11 +23,35 @@ final class PanelController: NSObject, NSWindowDelegate {
     var isOpen: Bool { panel?.isVisible == true }
 
     func open() {
+        open(quickNavigate: nil)
+    }
+
+    /// Opens the grid with the highlight already moved one tile in `direction`, and commits
+    /// the highlighted workspace as soon as the trigger modifiers are released.
+    func quickNavigate(_ direction: Direction) {
+        if isQuickNavigateOpening {
+            // The grid is still loading; replay the extra step once the highlight exists.
+            pendingQuickNavigateSteps.append(direction)
+            return
+        }
+        if isOpen {
+            // Navigating away is an unambiguous answer to a close-all prompt: not now.
+            viewModel.cancelPendingClose()
+            viewModel.navigate(direction)
+            armQuickNavigate(direction: direction)
+            return
+        }
+        open(quickNavigate: direction)
+    }
+
+    private func open(quickNavigate direction: Direction?) {
         ensurePanel()
 
         openRequestID &+= 1
         let requestID = openRequestID
-        viewModel.refresh { [weak self] in
+        disarmQuickNavigate()
+        isQuickNavigateOpening = direction != nil
+        viewModel.refresh(quickNavigate: direction) { [weak self] in
             guard let self, self.openRequestID == requestID else { return }
             self.positionPanelAtPointer()
             self.panel?.makeKeyAndOrderFront(nil)
@@ -38,11 +67,18 @@ final class PanelController: NSObject, NSWindowDelegate {
             }
             NSApp.activate(ignoringOtherApps: true)
             self.installKeyMonitor()
+
+            guard let direction else { return }
+            self.isQuickNavigateOpening = false
+            self.pendingQuickNavigateSteps.forEach(self.viewModel.navigate)
+            self.pendingQuickNavigateSteps = []
+            self.armQuickNavigate(direction: direction)
         }
     }
 
     func close() {
         openRequestID &+= 1
+        disarmQuickNavigate()
         viewModel.clearWorkspaceMoveMode()
         panel?.orderOut(nil)
         treePanel?.orderOut(nil)
@@ -95,6 +131,59 @@ final class PanelController: NSObject, NSWindowDelegate {
         close()
     }
 
+    /// Starts watching for release of the modifiers of the quick-navigate hotkey that was
+    /// pressed. A hotkey without modifiers cannot be released, so the grid simply stays open.
+    private func armQuickNavigate(direction: Direction) {
+        guard let modifiers = viewModel.config.keys.quickNavigateModifiers(for: direction) else {
+            disarmQuickNavigate()
+            return
+        }
+
+        quickNavigateModifiers = modifiers
+        viewModel.isQuickNavigateActive = true
+        quickNavigateGeneration &+= 1
+        scheduleQuickNavigatePoll(generation: quickNavigateGeneration)
+        // The modifiers may already be gone if the shortcut was tapped rather than held.
+        evaluateQuickNavigateRelease()
+    }
+
+    private func disarmQuickNavigate() {
+        quickNavigateGeneration &+= 1
+        quickNavigateModifiers = nil
+        isQuickNavigateOpening = false
+        pendingQuickNavigateSteps = []
+        viewModel.isQuickNavigateActive = false
+    }
+
+    /// Polls the hardware modifier state, which stays correct even when the panel never
+    /// became key and therefore no `flagsChanged` event reaches the local monitor.
+    private func scheduleQuickNavigatePoll(generation: UInt) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + quickNavigatePollInterval) { [weak self] in
+            guard let self, self.quickNavigateGeneration == generation else { return }
+            self.evaluateQuickNavigateRelease()
+            guard self.quickNavigateGeneration == generation else { return }
+            self.scheduleQuickNavigatePoll(generation: generation)
+        }
+    }
+
+    private func evaluateQuickNavigateRelease(
+        heldModifiers: HotkeyModifiers? = nil
+    ) {
+        guard let expected = quickNavigateModifiers else { return }
+        let held = heldModifiers ?? hotkeyModifiers(NSEvent.modifierFlags)
+        guard !held.contains(expected) else { return }
+        commitQuickNavigate()
+    }
+
+    private func commitQuickNavigate() {
+        let canCommit = viewModel.canCommitQuickNavigate
+        disarmQuickNavigate()
+        // With no destination, or with an error on screen, leave the grid open instead of
+        // switching blind; the usual grid keys still apply.
+        guard canCommit else { return }
+        viewModel.confirmSelection()
+    }
+
     private func installKeyMonitor() {
         removeKeyMonitor()
         keyMonitor = NSEvent.addLocalMonitorForEvents(
@@ -102,9 +191,9 @@ final class PanelController: NSObject, NSWindowDelegate {
         ) { [weak self] event in
             guard let self, self.isOpen, self.panel?.isKeyWindow == true else { return event }
             if event.type == .flagsChanged {
-                self.viewModel.updateWorkspaceMoveMode(
-                    heldModifiers: self.hotkeyModifiers(event.modifierFlags)
-                )
+                let held = self.hotkeyModifiers(event.modifierFlags)
+                self.viewModel.updateWorkspaceMoveMode(heldModifiers: held)
+                self.evaluateQuickNavigateRelease(heldModifiers: held)
                 return event
             }
             self.handle(event)
@@ -278,6 +367,12 @@ final class PanelController: NSObject, NSWindowDelegate {
             return
         }
 
+        if viewModel.isQuickNavigateActive,
+           let direction = quickNavigateDirection(event: event) {
+            viewModel.navigate(direction)
+            return
+        }
+
         if let direction = workspaceMoveDirection(token: token) {
             viewModel.moveWorkspaceContents(direction)
             return
@@ -323,6 +418,28 @@ final class PanelController: NSObject, NSWindowDelegate {
         if token == viewModel.config.keys.down || event.keyCode == 125 { return .down }
         if token == viewModel.config.keys.up || event.keyCode == 126 { return .up }
         if token == viewModel.config.keys.right || event.keyCode == 124 { return .right }
+        return nil
+    }
+
+    /// While the quick-navigate modifiers stay held, the quick-navigate hotkeys and the plain
+    /// navigation keys (or arrows) pressed with those modifiers keep moving the highlight.
+    private func quickNavigateDirection(event: NSEvent) -> Direction? {
+        guard
+            let expected = quickNavigateModifiers,
+            hotkeyModifiers(event.modifierFlags) == expected
+        else {
+            return nil
+        }
+
+        let keys = viewModel.config.keys
+        let key = (event.charactersIgnoringModifiers ?? "").lowercased()
+        if let direction = keys.quickNavigateDirection(modifiers: expected, key: key) {
+            return direction
+        }
+        if key == keys.left || event.keyCode == 123 { return .left }
+        if key == keys.down || event.keyCode == 125 { return .down }
+        if key == keys.up || event.keyCode == 126 { return .up }
+        if key == keys.right || event.keyCode == 124 { return .right }
         return nil
     }
 

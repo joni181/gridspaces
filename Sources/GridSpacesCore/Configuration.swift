@@ -19,6 +19,10 @@ public struct KeyBindings: Codable, Equatable, Sendable {
     public var moveToDisplayRight: String
     public var moveToDisplayNext: String
     public var moveToDisplayPrevious: String
+    public var quickNavigateLeft: String
+    public var quickNavigateDown: String
+    public var quickNavigateUp: String
+    public var quickNavigateRight: String
     public var workspaces: [String: String]
 
     enum CodingKeys: String, CodingKey {
@@ -34,6 +38,10 @@ public struct KeyBindings: Codable, Equatable, Sendable {
         case moveToDisplayRight = "move_to_display_right"
         case moveToDisplayNext = "move_to_display_next"
         case moveToDisplayPrevious = "move_to_display_previous"
+        case quickNavigateLeft = "quick_navigate_left"
+        case quickNavigateDown = "quick_navigate_down"
+        case quickNavigateUp = "quick_navigate_up"
+        case quickNavigateRight = "quick_navigate_right"
         case workspaces
     }
 
@@ -45,6 +53,10 @@ public struct KeyBindings: Codable, Equatable, Sendable {
         moveToDisplayLeft: "shift-h", moveToDisplayDown: "shift-j",
         moveToDisplayUp: "shift-k", moveToDisplayRight: "shift-l",
         moveToDisplayNext: "shift-l", moveToDisplayPrevious: "shift-h",
+        quickNavigateLeft: "ctrl-alt-shift-h",
+        quickNavigateDown: "ctrl-alt-shift-j",
+        quickNavigateUp: "ctrl-alt-shift-k",
+        quickNavigateRight: "ctrl-alt-shift-l",
         workspaces: [:]
     )
 
@@ -55,6 +67,45 @@ public struct KeyBindings: Codable, Equatable, Sendable {
             moveWorkspaceUp,
             moveWorkspaceRight,
         ]
+    }
+
+    /// The hotkey that triggers quick-navigate in the given direction. GridSpaces does not
+    /// register it globally; it is declared here so the grid knows which modifiers are held.
+    public func quickNavigateHotkey(for direction: Direction) -> String {
+        switch direction {
+        case .left: return quickNavigateLeft
+        case .down: return quickNavigateDown
+        case .up: return quickNavigateUp
+        case .right: return quickNavigateRight
+        }
+    }
+
+    /// Modifiers that must stay held for quick-navigate in the given direction to remain
+    /// active. `nil` when the hotkey is unparseable or carries no modifier, in which case
+    /// release cannot be detected.
+    public func quickNavigateModifiers(for direction: Direction) -> HotkeyModifiers? {
+        guard
+            let components = HotkeyModifiers.components(of: quickNavigateHotkey(for: direction)),
+            !components.modifiers.isEmpty
+        else {
+            return nil
+        }
+        return components.modifiers
+    }
+
+    /// Direction of the quick-navigate hotkey matching `modifiers` plus `key`, if any.
+    public func quickNavigateDirection(
+        modifiers: HotkeyModifiers,
+        key: String
+    ) -> Direction? {
+        Direction.allCases.first { direction in
+            guard let components = HotkeyModifiers.components(
+                of: quickNavigateHotkey(for: direction)
+            ) else {
+                return false
+            }
+            return components.modifiers == modifiers && components.key == key.lowercased()
+        }
     }
 }
 
@@ -248,6 +299,10 @@ public enum ConfigLoader {
         "move-to-display right": \.moveToDisplayRight,
         "move-to-display next": \.moveToDisplayNext,
         "move-to-display previous": \.moveToDisplayPrevious,
+        "quick-navigate left": \.quickNavigateLeft,
+        "quick-navigate down": \.quickNavigateDown,
+        "quick-navigate up": \.quickNavigateUp,
+        "quick-navigate right": \.quickNavigateRight,
     ]
 
     private static func merge(_ document: ConfigDocument) -> ConfigLoadResult {
@@ -303,6 +358,13 @@ public enum ConfigLoader {
 
             if let workspaces = section.workspaces {
                 merged.workspaces = normalizeWorkspaceBindings(workspaces, warnings: &warnings)
+            }
+            for direction in Direction.allCases where merged.quickNavigateModifiers(for: direction) == nil {
+                warnings.append(
+                    "[keys] '\(merged.quickNavigateHotkey(for: direction))': "
+                        + "quick-navigate \(direction.rawValue) needs at least one modifier to "
+                        + "detect release; the grid will stay open until you confirm."
+                )
             }
             result.keys = merged
         }

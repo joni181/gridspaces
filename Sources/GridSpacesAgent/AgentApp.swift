@@ -72,6 +72,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .close: panelController.close()
         case .toggle: panelController.toggle()
         case .reloadConfig: panelController.reloadConfiguration()
+        case .quickNavigateLeft, .quickNavigateDown, .quickNavigateUp, .quickNavigateRight:
+            guard let direction = command.quickNavigateDirection else { return }
+            panelController.quickNavigate(direction)
         }
     }
 

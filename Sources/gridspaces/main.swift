@@ -28,9 +28,10 @@ enum GridSpacesCLI {
             try ensureAgentRunning()
             try sendWithRetry(.reloadConfig)
             print("GridSpaces configuration reloaded.")
-        case "focus":
+        case "quick-navigate":
             let direction = try parseDirection(arguments)
-            try focus(direction: direction)
+            try ensureAgentRunning()
+            try sendWithRetry(.quickNavigate(direction))
         case "--help", "-h", "help":
             print(usage)
         default:
@@ -38,36 +39,20 @@ enum GridSpacesCLI {
         }
     }
 
+    /// Accepts both `quick-navigate left` and `quick-navigate --direction left`.
     private static func parseDirection(_ arguments: [String]) throws -> Direction {
-        guard
-            let flagIndex = arguments.firstIndex(of: "--direction"),
-            arguments.indices.contains(flagIndex + 1),
-            let direction = Direction(rawValue: arguments[flagIndex + 1])
-        else {
+        let candidate: String?
+        if let flagIndex = arguments.firstIndex(of: "--direction") {
+            candidate = arguments.indices.contains(flagIndex + 1) ? arguments[flagIndex + 1] : nil
+        } else {
+            candidate = arguments.dropFirst().first
+        }
+        guard let candidate, let direction = Direction(rawValue: candidate.lowercased()) else {
             throw GridSpacesError.invalidArguments(
-                "focus requires --direction <left|down|up|right>"
+                "\(arguments[0]) requires a direction: <left|down|up|right>"
             )
         }
         return direction
-    }
-
-    private static func focus(direction: Direction) throws {
-        let loaded = ConfigLoader.load()
-        loaded.warnings.forEach {
-            FileHandle.standardError.write(Data("gridspaces: warning: \($0)\n".utf8))
-        }
-        let client = try AeroSpaceClient()
-        let snapshot = try client.snapshot()
-        let model = GridModel(config: loaded.config, states: snapshot.workspaces)
-        guard let destination = model.workspace(
-            from: snapshot.focusedWorkspace,
-            direction: direction,
-            wrap: loaded.config.behavior.wrap,
-            fallbackFromOverflow: true
-        ), destination != snapshot.focusedWorkspace else {
-            return
-        }
-        try client.focus(workspace: destination)
     }
 
     private static func ensureAgentRunning() throws {
@@ -129,7 +114,7 @@ enum GridSpacesCLI {
       gridspaces open
       gridspaces toggle
       gridspaces close
-      gridspaces focus --direction <left|down|up|right>
+      gridspaces quick-navigate <left|down|up|right>
       gridspaces reload-config
     """
 }

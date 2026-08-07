@@ -37,6 +37,14 @@ public struct HotkeyModifiers: OptionSet, Equatable, Sendable {
         return first.modifiers
     }
 
+    /// Splits a hotkey such as `ctrl-alt-shift-h` into its modifiers and its base key.
+    /// Returns `nil` when the hotkey uses an unknown modifier or has no base key.
+    public static func components(
+        of hotkey: String
+    ) -> (modifiers: HotkeyModifiers, key: String)? {
+        parse(hotkey)
+    }
+
     private static func parse(_ hotkey: String) -> (modifiers: HotkeyModifiers, key: String)? {
         let parts = hotkey.lowercased().split(separator: "-").map(String.init)
         guard let key = parts.last, !key.isEmpty else { return nil }

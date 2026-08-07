@@ -2,7 +2,7 @@
 
 Automated coverage checks config defaults/validation, configured placement, reserved
 empty tiles, overflow filtering, gap skipping, edge wrapping, overflow navigation,
-and the ungridded headless-switch fallback.
+and quick-navigate destination resolution including the ungridded fallback.
 
 Manual checks on a machine running AeroSpace:
 
@@ -16,7 +16,10 @@ Manual checks on a machine running AeroSpace:
 - Workspace-content movement skips configured gaps, does not wrap, and is a no-op for overflow workspaces.
 - Holding only `Alt` shakes the tiles; holding `Alt+Ctrl` does not. Reduce Motion uses static emphasis.
 - `Shift+h/j/k/l` moves the highlighted workspace between displays and preserves focus.
-- `gridspaces focus --direction right` switches without opening the popup.
+- `Ctrl+Alt+Shift+l` opens the popup with the highlight already one tile to the right; releasing the modifiers switches to it.
+- Holding `Ctrl+Alt+Shift` and pressing `h/j/k/l` or arrows keeps moving the highlight; the switch happens only on release.
+- Tapping `Ctrl+Alt+Shift+l` shows the popup briefly and still switches one tile to the right.
+- Pressing `Esc` during a quick-navigate gesture closes the popup, and the later modifier release does not switch.
 - Occupied unconfigured workspaces appear in one overflow row.
 - On one display, move commands are silent no-ops and all outlines use one color.
 - While idle, `./scripts/measure.sh` shows near-zero CPU and no AeroSpace polling.
