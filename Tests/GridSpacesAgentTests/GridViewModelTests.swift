@@ -1,3 +1,4 @@
+import Dispatch
 import GridSpacesCore
 import Testing
 @testable import GridSpacesAgent
@@ -53,6 +54,42 @@ import Testing
 
     viewModel.clearWorkspaceMoveMode()
     #expect(!viewModel.isWorkspaceMoveModeActive)
+}
+
+@MainActor
+@Test func workspaceContentMoveUpdatesTileContentsOptimistically() {
+    let exchangeStarted = DispatchSemaphore(value: 0)
+    let allowExchangeToFinish = DispatchSemaphore(value: 0)
+    let config = GridSpacesConfig(grid: [["source", "destination"]])
+    let viewModel = GridViewModel(config: config) { _, _ in
+        exchangeStarted.signal()
+        allowExchangeToFinish.wait()
+    }
+    viewModel.model = GridModel(
+        config: config,
+        states: [
+            WorkspaceState(
+                name: "source",
+                windows: [WindowInfo(id: 1, appName: "Source App", title: "Source")],
+                monitorID: 1
+            ),
+            WorkspaceState(
+                name: "destination",
+                windows: [WindowInfo(id: 2, appName: "Destination App", title: "Destination")],
+                monitorID: 1
+            ),
+        ]
+    )
+    viewModel.highlightedWorkspace = "source"
+
+    viewModel.moveWorkspaceContents(.right)
+
+    #expect(viewModel.highlightedWorkspace == "destination")
+    #expect(viewModel.model.tile(named: "source")?.workspace.distinctApplications == ["Destination App"])
+    #expect(viewModel.model.tile(named: "destination")?.workspace.distinctApplications == ["Source App"])
+    #expect(viewModel.isReorderingWorkspace)
+    #expect(exchangeStarted.wait(timeout: .now() + 1) == .success)
+    allowExchangeToFinish.signal()
 }
 
 @MainActor

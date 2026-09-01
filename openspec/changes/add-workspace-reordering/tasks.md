@@ -26,6 +26,7 @@
 - [x] 4.3 On success, refresh state and move the highlight to the destination while keeping the popup open
 - [x] 4.4 On failure, refresh state, retain the source highlight, and present the error
 - [x] 4.5 Add automated coverage for destination/highlight helpers, move-mode state, exchange success, and rollback errors
+- [x] 4.6 Move the displayed app icons and highlight to the destination optimistically while the workspace-content exchange is in progress
 
 ## 5. Modifier move-mode visualization
 

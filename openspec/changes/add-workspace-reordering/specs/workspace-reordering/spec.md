@@ -7,9 +7,10 @@ GridSpaces SHALL provide in-grid actions that move the complete snapshotted wind
 #### Scenario: Move into an empty workspace
 
 - **WHEN** workspace `B` is highlighted, contains windows, and the user invokes `move-workspace left` toward an empty configured workspace `A`
-- **THEN** GridSpaces moves every snapshotted window from `B` to `A`
+- **THEN** the displayed app icons immediately move from workspace `B` to workspace `A`
+- **AND** the highlight immediately moves to workspace `A` while the window movement is in progress
+- **AND** GridSpaces moves every snapshotted window from `B` to `A`
 - **AND** workspace `B` becomes empty
-- **AND** the highlight moves to workspace `A`
 - **AND** the grid remains open
 
 #### Scenario: No destination in the requested direction
@@ -84,6 +85,7 @@ GridSpaces SHALL allow at most one workspace-content move at a time, verify the 
 
 - **WHEN** AeroSpace fails after one or more individual windows have moved
 - **THEN** GridSpaces attempts to move every surviving snapshotted window back to its original workspace
+- **AND** immediately restores the original displayed app icons and source highlight
 - **AND** refreshes workspace state
 - **AND** keeps the highlight on the original source workspace
 - **AND** reports that the operation failed

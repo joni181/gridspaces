@@ -19,9 +19,19 @@ final class GridViewModel: ObservableObject {
     let iconResolver = AppIconResolver()
     var onRequestClose: (() -> Void)?
     private var refreshID: UInt = 0
+    private let exchangeWorkspaceContents: @Sendable (String, String) throws -> Void
 
-    init(config: GridSpacesConfig = .defaults) {
+    init(
+        config: GridSpacesConfig = .defaults,
+        exchangeWorkspaceContents: @escaping @Sendable (String, String) throws -> Void = { source, destination in
+            try AeroSpaceClient().exchangeWorkspaceContents(
+                source: source,
+                destination: destination
+            )
+        }
+    ) {
         self.config = config
+        self.exchangeWorkspaceContents = exchangeWorkspaceContents
         model = GridModel(config: config, states: [])
     }
 
@@ -217,12 +227,24 @@ final class GridViewModel: ObservableObject {
 
         isReorderingWorkspace = true
         errorMessage = nil
+        highlightedWorkspace = destination
+        let originalModel = model
+        var optimisticStates = model.tiles.map(\.workspace)
+        guard let sourceIndex = optimisticStates.firstIndex(where: { $0.name == source }),
+              let destinationIndex = optimisticStates.firstIndex(where: { $0.name == destination })
+        else {
+            isReorderingWorkspace = false
+            highlightedWorkspace = source
+            return
+        }
+        let sourceWindows = optimisticStates[sourceIndex].windows
+        optimisticStates[sourceIndex].windows = optimisticStates[destinationIndex].windows
+        optimisticStates[destinationIndex].windows = sourceWindows
+        model = GridModel(config: config, states: optimisticStates)
+        let exchangeWorkspaceContents = exchangeWorkspaceContents
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
-                try AeroSpaceClient().exchangeWorkspaceContents(
-                    source: source,
-                    destination: destination
-                )
+                try exchangeWorkspaceContents(source, destination)
                 DispatchQueue.main.async {
                     guard let self else { return }
                     self.isReorderingWorkspace = false
@@ -232,6 +254,7 @@ final class GridViewModel: ObservableObject {
                 DispatchQueue.main.async {
                     guard let self else { return }
                     self.isReorderingWorkspace = false
+                    self.model = originalModel
                     self.refresh(preferredHighlightedWorkspace: source)
                     self.errorMessage = error.localizedDescription
                 }

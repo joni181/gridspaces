@@ -6,7 +6,7 @@ GridSpaces currently lets users move a highlight or send a workspace to another 
 
 - Add configurable in-grid actions that move the highlighted workspace's window set left, down, up, or right through the configured grid.
 - Exchange the source and destination window sets when the destination is occupied; moving toward an empty workspace transfers the source windows and leaves the source empty.
-- Keep the highlight attached to the moved source contents by advancing it to the destination tile after a successful operation.
+- Optimistically exchange the displayed app icons and advance the highlight to the destination tile, then restore the source state if the operation fails.
 - Use AeroSpace's window-ID-targeted `move-node-to-workspace` command. Preserve the membership of each window set, while treating exact tiling-tree preservation as best-effort because AeroSpace exposes no public workspace rename or whole-tree move operation.
 - Add default bindings `Alt+h/j/k/l` for workspace-content movement.
 - **BREAKING**: Replace the ambiguous display movement commands `move-left/right/up/down/next/previous` with argument-style `move-to-display <left|down|up|right|next|previous>`. The old command names will no longer be accepted.

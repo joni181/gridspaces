@@ -13,7 +13,7 @@ The popup currently observes only `keyDown` events and uses `move-left/right/up/
 - Move a complete source window set to the nearest configured workspace tile in a requested direction.
 - Swap source and destination window sets when both contain windows.
 - Move into an empty destination without losing windows.
-- Keep the grid open and move the highlight to the destination tile after success.
+- Keep the grid open and optimistically exchange the displayed window sets while moving the highlight to the destination tile.
 - Avoid overlapping reorder operations and attempt to restore original membership after a partial failure.
 - Make workspace-content movement visually discoverable for configurations with a common modifier set.
 - Disambiguate workspace-content movement from display movement.
@@ -102,7 +102,7 @@ Tiles shake only while the currently held relevant modifiers exactly equal that 
 
 ### Decision: Highlight follows contents; AeroSpace focus does not
 
-After a successful exchange, the highlight changes from the source workspace name to the destination workspace name. GridSpaces does not explicitly switch AeroSpace focus during the operation. A later confirm action focuses the highlighted destination as usual.
+When an exchange starts, the displayed window sets immediately swap and the highlight changes from the source workspace name to the destination workspace name. If the exchange fails, the displayed sets and highlight return to their original state. GridSpaces does not explicitly switch AeroSpace focus during the operation. A later confirm action focuses the highlighted destination as usual.
 
 **Why:** The user explicitly asked for the highlight to follow the moved workspace. Avoiding focus commands keeps the in-grid action non-navigational and matches existing display-movement behavior.
 
