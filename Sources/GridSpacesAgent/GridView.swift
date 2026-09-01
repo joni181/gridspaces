@@ -129,11 +129,11 @@ private struct WorkspaceTile: View {
         )
         .scaleEffect(isMoveModeActive && reduceMotion ? 1.025 : 1)
         .rotationEffect(
-            .degrees(isMoveModeActive && !reduceMotion ? 1.25 : 0)
+            .degrees(isMoveModeActive && !reduceMotion ? 1.5 : 0)
         )
         .animation(
             isMoveModeActive && !reduceMotion
-                ? .easeInOut(duration: 0.09)
+                ? .easeInOut(duration: 0.11)
                     .repeatForever(autoreverses: true)
                     .delay(Double(tile.position.row + tile.position.column) * 0.012)
                 : .easeOut(duration: 0.12),
