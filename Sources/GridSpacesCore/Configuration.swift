@@ -133,15 +133,26 @@ public struct Behavior: Codable, Equatable, Sendable {
 public struct Appearance: Codable, Equatable, Sendable {
     public var monitorColors: [String]
     public var showTreePanel: Bool
+    public var showMonitorLayoutPanel: Bool
+    public var monitorLayoutMinimumMonitors: Int
 
-    public init(monitorColors: [String], showTreePanel: Bool = false) {
+    public init(
+        monitorColors: [String],
+        showTreePanel: Bool = false,
+        showMonitorLayoutPanel: Bool = true,
+        monitorLayoutMinimumMonitors: Int = 2
+    ) {
         self.monitorColors = monitorColors
         self.showTreePanel = showTreePanel
+        self.showMonitorLayoutPanel = showMonitorLayoutPanel
+        self.monitorLayoutMinimumMonitors = monitorLayoutMinimumMonitors
     }
 
     enum CodingKeys: String, CodingKey {
         case monitorColors = "monitor_colors"
         case showTreePanel = "show_tree_panel"
+        case showMonitorLayoutPanel = "show_monitor_layout_panel"
+        case monitorLayoutMinimumMonitors = "monitor_layout_minimum_monitors"
     }
 
     public static let defaults = Appearance(
@@ -153,7 +164,9 @@ public struct Appearance: Codable, Equatable, Sendable {
             "#AF52DE",
             "#FFCC00",
         ],
-        showTreePanel: false
+        showTreePanel: false,
+        showMonitorLayoutPanel: true,
+        monitorLayoutMinimumMonitors: 2
     )
 }
 
@@ -241,10 +254,14 @@ private struct PartialBehavior: Decodable {
 private struct PartialAppearance: Decodable {
     var monitorColors: [String]?
     var showTreePanel: Bool?
+    var showMonitorLayoutPanel: Bool?
+    var monitorLayoutMinimumMonitors: Int?
 
     enum CodingKeys: String, CodingKey {
         case monitorColors = "monitor_colors"
         case showTreePanel = "show_tree_panel"
+        case showMonitorLayoutPanel = "show_monitor_layout_panel"
+        case monitorLayoutMinimumMonitors = "monitor_layout_minimum_monitors"
     }
 }
 
@@ -395,6 +412,19 @@ public enum ConfigLoader {
 
         if let showTreePanel = document.appearance?.showTreePanel {
             result.appearance.showTreePanel = showTreePanel
+        }
+        if let showMonitorLayoutPanel = document.appearance?.showMonitorLayoutPanel {
+            result.appearance.showMonitorLayoutPanel = showMonitorLayoutPanel
+        }
+        if let minimum = document.appearance?.monitorLayoutMinimumMonitors {
+            if minimum > 0 {
+                result.appearance.monitorLayoutMinimumMonitors = minimum
+            } else {
+                warnings.append(
+                    "appearance.monitor_layout_minimum_monitors must be a positive integer; "
+                        + "using the default value of 2."
+                )
+            }
         }
 
         return ConfigLoadResult(config: result, warnings: warnings)

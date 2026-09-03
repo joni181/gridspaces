@@ -7,6 +7,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     private let viewModel = GridViewModel()
     private var panel: NSPanel?
     private var treePanel: NSPanel?
+    private var monitorLayoutPanel: NSPanel?
     private var keyMonitor: Any?
     private var openRequestID: UInt = 0
     private var quickNavigateModifiers: HotkeyModifiers?
@@ -51,29 +52,28 @@ final class PanelController: NSObject, NSWindowDelegate {
         let requestID = openRequestID
         disarmQuickNavigate()
         isQuickNavigateOpening = direction != nil
-        viewModel.refresh(quickNavigate: direction) { [weak self] in
-            guard let self, self.openRequestID == requestID else { return }
-            self.positionPanelAtPointer()
-            self.panel?.makeKeyAndOrderFront(nil)
-            if self.viewModel.config.appearance.showTreePanel {
-                self.ensureTreePanel()
-                self.positionTreePanel()
-                self.treePanel?.orderFront(nil)
-                // Re-center after SwiftUI completes its layout pass.
-                DispatchQueue.main.async { [weak self] in
-                    guard let self, self.openRequestID == requestID else { return }
-                    self.positionTreePanel()
-                }
-            }
-            NSApp.activate(ignoringOtherApps: true)
-            self.installKeyMonitor()
+        viewModel.refresh(
+            quickNavigate: direction,
+            onFocusedWorkspaceReady: { [weak self] in
+                guard let self, self.openRequestID == requestID else { return }
+                self.updateScreenDescriptors()
+                self.positionPanelAtPointer()
+                self.panel?.makeKeyAndOrderFront(nil)
+                self.updateCompanionPanels(requestID: requestID)
+                NSApp.activate(ignoringOtherApps: true)
+                self.installKeyMonitor()
 
-            guard let direction else { return }
-            self.isQuickNavigateOpening = false
-            self.pendingQuickNavigateSteps.forEach(self.viewModel.navigate)
-            self.pendingQuickNavigateSteps = []
-            self.armQuickNavigate(direction: direction)
-        }
+                guard let direction else { return }
+                self.isQuickNavigateOpening = false
+                self.pendingQuickNavigateSteps.forEach(self.viewModel.navigate)
+                self.pendingQuickNavigateSteps = []
+                self.armQuickNavigate(direction: direction)
+            },
+            onRefreshComplete: { [weak self] in
+                guard let self, self.openRequestID == requestID else { return }
+                self.updateCompanionPanels(requestID: requestID)
+            }
+        )
     }
 
     func close() {
@@ -82,6 +82,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         viewModel.clearWorkspaceMoveMode()
         panel?.orderOut(nil)
         treePanel?.orderOut(nil)
+        monitorLayoutPanel?.orderOut(nil)
         removeKeyMonitor()
     }
 
@@ -92,14 +93,12 @@ final class PanelController: NSObject, NSWindowDelegate {
     func reloadConfiguration() {
         viewModel.reloadConfiguration()
         if isOpen {
-            if viewModel.config.appearance.showTreePanel {
-                ensureTreePanel()
-                positionTreePanel()
-                treePanel?.orderFront(nil)
-            } else {
-                treePanel?.orderOut(nil)
-            }
-            viewModel.refresh()
+            updateCompanionPanels()
+            viewModel.refresh(
+                onRefreshComplete: { [weak self] in
+                    self?.updateCompanionPanels()
+                }
+            )
         }
     }
 
@@ -239,9 +238,14 @@ final class PanelController: NSObject, NSWindowDelegate {
         if viewModel.config.appearance.showTreePanel {
             ensureTreePanel()
         }
+        if viewModel.config.appearance.showMonitorLayoutPanel {
+            ensureMonitorLayoutPanel()
+        }
     }
 
+    private let companionPanelGap: CGFloat = 8
     private let treePanelWidth: CGFloat = 280
+    private let monitorLayoutPanelWidth: CGFloat = 182
 
     private func ensureTreePanel() {
         guard treePanel == nil else { return }
@@ -269,6 +273,33 @@ final class PanelController: NSObject, NSWindowDelegate {
         treePanel = newPanel
     }
 
+    private func ensureMonitorLayoutPanel() {
+        guard monitorLayoutPanel == nil else { return }
+
+        let hostingController = NSHostingController(
+            rootView: MonitorLayoutPanel(viewModel: viewModel)
+        )
+        let initialRect = CGRect(x: 0, y: 0, width: monitorLayoutPanelWidth, height: 170)
+        let newPanel = NSPanel(
+            contentRect: initialRect,
+            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        newPanel.titleVisibility = .hidden
+        newPanel.titlebarAppearsTransparent = true
+        newPanel.isMovableByWindowBackground = true
+        newPanel.level = .floating
+        newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        newPanel.isReleasedWhenClosed = false
+        newPanel.contentViewController = hostingController
+        newPanel.backgroundColor = .clear
+        newPanel.isOpaque = false
+        newPanel.hasShadow = true
+        newPanel.ignoresMouseEvents = true
+        monitorLayoutPanel = newPanel
+    }
+
     private func presentError(_ message: String) {
         viewModel.reportError(message)
         guard !isOpen else { return }
@@ -284,19 +315,10 @@ final class PanelController: NSObject, NSWindowDelegate {
     private func positionPanelAtPointer() {
         guard let panel else { return }
 
-        let screens = NSScreen.screens
-        let mainScreenIndex = NSScreen.main.flatMap { mainScreen in
-            screens.firstIndex(where: { $0 === mainScreen })
-        }
-        guard let targetIndex = PopupPlacement.targetScreenIndex(
-            pointerLocation: NSEvent.mouseLocation,
-            screenFrames: screens.map(\.frame),
-            mainScreenIndex: mainScreenIndex
-        ) else {
+        guard let visibleFrame = targetVisibleFrame() else {
             return
         }
 
-        let visibleFrame = screens[targetIndex].visibleFrame
         let origin = PopupPlacement.centeredOrigin(
             windowSize: panel.frame.size,
             visibleFrame: visibleFrame
@@ -304,15 +326,93 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.setFrameOrigin(origin)
     }
 
+    private func updateScreenDescriptors() {
+        viewModel.updateScreenDescriptors(NSScreen.screens.map(MonitorScreenDescriptor.init))
+    }
+
+    private func updateCompanionPanels(requestID: UInt? = nil) {
+        updateScreenDescriptors()
+        updateMonitorLayoutPanel()
+        updateTreePanel()
+        // Re-center after SwiftUI completes its layout pass.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if let requestID, self.openRequestID != requestID { return }
+            self.positionMonitorLayoutPanel()
+            self.positionTreePanel()
+        }
+    }
+
+    private func updateMonitorLayoutPanel() {
+        guard viewModel.shouldShowMonitorLayoutPanel else {
+            monitorLayoutPanel?.orderOut(nil)
+            return
+        }
+        ensureMonitorLayoutPanel()
+        positionMonitorLayoutPanel()
+        monitorLayoutPanel?.orderFront(nil)
+    }
+
+    private func updateTreePanel() {
+        guard viewModel.config.appearance.showTreePanel else {
+            treePanel?.orderOut(nil)
+            return
+        }
+        ensureTreePanel()
+        positionTreePanel()
+        treePanel?.orderFront(nil)
+    }
+
+    private func positionMonitorLayoutPanel() {
+        guard let panel, let monitorLayoutPanel else { return }
+        guard let visibleFrame = targetVisibleFrame() else { return }
+
+        let width = monitorLayoutPanelWidth
+        let height = monitorLayoutPanel.frame.height > 0 ? monitorLayoutPanel.frame.height : 170
+        let mainFrame = panel.frame
+        let x = mainFrame.minX - width - companionPanelGap
+        let y = centeredCompanionY(height: height, mainFrame: mainFrame, visibleFrame: visibleFrame)
+
+        monitorLayoutPanel.setFrame(
+            CGRect(x: x, y: y, width: width, height: height),
+            display: true
+        )
+    }
+
     private func positionTreePanel() {
         guard let panel, let treePanel else { return }
 
-        let gap: CGFloat = 8
         let mainFrame = panel.frame
         let width = treePanelWidth
         // Use actual SwiftUI-computed height if available; fall back to a reasonable default.
         let height = treePanel.frame.height > 0 ? treePanel.frame.height : 400
 
+        guard let visibleFrame = targetVisibleFrame() else { return }
+
+        let rightX = mainFrame.maxX + companionPanelGap
+        let leftX = mainFrame.minX - width - companionPanelGap
+        let monitorLeftX = monitorLayoutPanel.flatMap { monitorPanel -> CGFloat? in
+            guard monitorPanel.isVisible else { return nil }
+            return monitorPanel.frame.minX - width - companionPanelGap
+        }
+
+        let x: CGFloat
+        if rightX + width <= visibleFrame.maxX {
+            x = rightX
+        } else if let monitorLeftX, monitorLeftX >= visibleFrame.minX {
+            x = monitorLeftX
+        } else if leftX >= visibleFrame.minX {
+            x = leftX
+        } else {
+            x = mainFrame.midX - width / 2
+        }
+
+        let y = centeredCompanionY(height: height, mainFrame: mainFrame, visibleFrame: visibleFrame)
+
+        treePanel.setFrame(CGRect(x: x, y: y, width: width, height: height), display: true)
+    }
+
+    private func targetVisibleFrame() -> CGRect? {
         let screens = NSScreen.screens
         let mainScreenIndex = NSScreen.main.flatMap { mainScreen in
             screens.firstIndex(where: { $0 === mainScreen })
@@ -322,27 +422,18 @@ final class PanelController: NSObject, NSWindowDelegate {
             screenFrames: screens.map(\.frame),
             mainScreenIndex: mainScreenIndex
         ) else {
-            return
+            return nil
         }
-        let visibleFrame = screens[targetIndex].visibleFrame
+        return screens[targetIndex].visibleFrame
+    }
 
-        let rightX = mainFrame.maxX + gap
-        let leftX = mainFrame.minX - width - gap
-
-        let x: CGFloat
-        if rightX + width <= visibleFrame.maxX {
-            x = rightX
-        } else if leftX >= visibleFrame.minX {
-            x = leftX
-        } else {
-            x = mainFrame.midX - width / 2
-        }
-
-        // Vertically center on the main panel, clamped within the screen.
+    private func centeredCompanionY(
+        height: CGFloat,
+        mainFrame: CGRect,
+        visibleFrame: CGRect
+    ) -> CGFloat {
         let centeredY = mainFrame.midY - height / 2
-        let y = max(visibleFrame.minY, min(centeredY, visibleFrame.maxY - height))
-
-        treePanel.setFrame(CGRect(x: x, y: y, width: width, height: height), display: true)
+        return max(visibleFrame.minY, min(centeredY, visibleFrame.maxY - height))
     }
 
     private func handle(_ event: NSEvent) {

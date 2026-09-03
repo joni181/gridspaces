@@ -94,15 +94,18 @@ public struct WindowInfo: Codable, Hashable, Sendable {
 public struct MonitorInfo: Codable, Hashable, Sendable {
     public let id: Int
     public let name: String
+    public let appKitScreenIndex: Int?
 
     enum CodingKeys: String, CodingKey {
         case id = "monitor-id"
         case name = "monitor-name"
+        case appKitScreenIndex = "monitor-appkit-nsscreen-screens-id"
     }
 
-    public init(id: Int, name: String) {
+    public init(id: Int, name: String, appKitScreenIndex: Int? = nil) {
         self.id = id
         self.name = name
+        self.appKitScreenIndex = appKitScreenIndex
     }
 }
 

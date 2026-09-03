@@ -38,6 +38,42 @@ The default shown above represents a QWERTZ keyboard layout. If you are using QW
 
 ## `[appearance]`
 
+### `show_monitor_layout_panel`
+
+When `true`, a companion panel opens to the left of the main GridSpaces popup showing a compact map of your physical monitor layout. Each monitor uses the same color as workspace tiles assigned to that monitor. The monitor containing the highlighted workspace lights up as you move the keyboard-controlled highlight.
+
+**Default:** `true`
+
+```toml
+[appearance]
+show_monitor_layout_panel = true
+```
+
+Set it to `false` to keep the popup layout as it was before this panel:
+
+```toml
+[appearance]
+show_monitor_layout_panel = false
+```
+
+### `monitor_layout_minimum_monitors`
+
+Minimum number of connected monitors required before the monitor-layout panel appears. The default hides the panel on one-monitor setups. Set this to `1` if you want the panel even with a single monitor.
+
+The value must be a positive integer. If it is zero or negative, GridSpaces reports a configuration warning and uses the default value.
+
+**Default:** `2`
+
+```toml
+[appearance]
+monitor_layout_minimum_monitors = 2
+```
+
+```toml
+[appearance]
+monitor_layout_minimum_monitors = 1
+```
+
 ### `show_tree_panel`
 
 When `true`, a second panel opens alongside the main GridSpaces popup showing the windows of the currently highlighted workspace. The panel lists each window with its application icon and title. It closes together with the main popup.

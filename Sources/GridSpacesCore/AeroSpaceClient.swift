@@ -75,12 +75,16 @@ public final class AeroSpaceClient {
     }
 
     public func listMonitors() throws -> [MonitorInfo] {
-        let data = try runData(["list-monitors", "--json"])
+        let data = try runData([
+            "list-monitors",
+            "--format", "%{monitor-id} %{monitor-appkit-nsscreen-screens-id} %{monitor-name}",
+            "--json",
+        ])
         do {
             return try JSONDecoder().decode([MonitorInfo].self, from: data)
         } catch {
             throw GridSpacesError.invalidOutput(
-                command: "list-monitors --json",
+                command: "list-monitors --format ... --json",
                 message: error.localizedDescription
             )
         }

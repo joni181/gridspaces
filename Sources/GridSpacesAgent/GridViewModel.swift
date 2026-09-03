@@ -8,6 +8,7 @@ final class GridViewModel: ObservableObject {
     @Published var highlightedWorkspace: String?
     @Published var focusedWorkspace: String?
     @Published var monitors: [MonitorInfo] = []
+    @Published var screenDescriptors: [MonitorScreenDescriptor] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var pendingCloseWorkspace: String?
@@ -15,7 +16,7 @@ final class GridViewModel: ObservableObject {
     @Published var isWorkspaceMoveModeActive = false
     @Published var isQuickNavigateActive = false
 
-    private(set) var config = GridSpacesConfig.defaults
+    @Published private(set) var config = GridSpacesConfig.defaults
     let iconResolver = AppIconResolver()
     var onRequestClose: (() -> Void)?
     private var refreshID: UInt = 0
@@ -46,7 +47,8 @@ final class GridViewModel: ObservableObject {
     func refresh(
         preferredHighlightedWorkspace: String? = nil,
         quickNavigate: Direction? = nil,
-        onFocusedWorkspaceReady: (() -> Void)? = nil
+        onFocusedWorkspaceReady: (() -> Void)? = nil,
+        onRefreshComplete: (() -> Void)? = nil
     ) {
         refreshID &+= 1
         let requestID = refreshID
@@ -74,6 +76,7 @@ final class GridViewModel: ObservableObject {
                     self.errorMessage = error.localizedDescription
                     self.isLoading = false
                     onFocusedWorkspaceReady?()
+                    onRefreshComplete?()
                 }
                 return
             }
@@ -119,12 +122,14 @@ final class GridViewModel: ObservableObject {
                         fallbackToOrigin: true
                     )
                     self.isLoading = false
+                    onRefreshComplete?()
                 }
             } catch {
                 DispatchQueue.main.async {
                     guard let self, self.refreshID == requestID else { return }
                     self.errorMessage = error.localizedDescription
                     self.isLoading = false
+                    onRefreshComplete?()
                 }
             }
         }
@@ -295,6 +300,33 @@ final class GridViewModel: ObservableObject {
             return palette[0]
         }
         return palette[index % palette.count]
+    }
+
+    var connectedMonitorCount: Int {
+        max(monitors.count, screenDescriptors.count)
+    }
+
+    var shouldShowMonitorLayoutPanel: Bool {
+        config.appearance.showMonitorLayoutPanel
+            && connectedMonitorCount >= config.appearance.monitorLayoutMinimumMonitors
+    }
+
+    var highlightedMonitorID: Int? {
+        guard let highlightedWorkspace else { return nil }
+        return model.tile(named: highlightedWorkspace)?.workspace.monitorID
+    }
+
+    var monitorLayoutModel: MonitorLayoutModel {
+        MonitorLayoutModel.build(
+            screens: screenDescriptors,
+            monitors: monitors,
+            activeMonitorID: highlightedMonitorID,
+            palette: config.appearance.monitorColors
+        )
+    }
+
+    func updateScreenDescriptors(_ descriptors: [MonitorScreenDescriptor]) {
+        screenDescriptors = descriptors
     }
 
     private func performCloseAll(workspace: String) {

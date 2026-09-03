@@ -34,6 +34,8 @@ import Testing
         ]
     )
     #expect(Appearance.defaults.showTreePanel == false)
+    #expect(Appearance.defaults.showMonitorLayoutPanel == true)
+    #expect(Appearance.defaults.monitorLayoutMinimumMonitors == 2)
     #expect(GridSpacesConfig.defaults.appearance == .defaults)
 }
 
@@ -47,6 +49,53 @@ import Testing
     let result = ConfigLoader.load(from: url)
     #expect(result.config.appearance.showTreePanel == true)
     #expect(result.warnings.isEmpty)
+}
+
+@Test func parsesMonitorLayoutPanelSettings() throws {
+    let url = try temporaryConfig(
+        """
+        [appearance]
+        show_monitor_layout_panel = false
+        monitor_layout_minimum_monitors = 3
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.appearance.showMonitorLayoutPanel == false)
+    #expect(result.config.appearance.monitorLayoutMinimumMonitors == 3)
+    #expect(result.warnings.isEmpty)
+}
+
+@Test func monitorLayoutPanelCanBeEnabledForOneMonitor() throws {
+    let url = try temporaryConfig(
+        """
+        [appearance]
+        monitor_layout_minimum_monitors = 1
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.appearance.showMonitorLayoutPanel == true)
+    #expect(result.config.appearance.monitorLayoutMinimumMonitors == 1)
+    #expect(result.warnings.isEmpty)
+}
+
+@Test func invalidMonitorLayoutMinimumFallsBackIndependently() throws {
+    let url = try temporaryConfig(
+        """
+        [appearance]
+        show_tree_panel = true
+        show_monitor_layout_panel = false
+        monitor_layout_minimum_monitors = 0
+        """
+    )
+    let result = ConfigLoader.load(from: url)
+
+    #expect(result.config.appearance.showTreePanel == true)
+    #expect(result.config.appearance.showMonitorLayoutPanel == false)
+    #expect(result.config.appearance.monitorLayoutMinimumMonitors == 2)
+    #expect(result.warnings.count == 1)
+    #expect(result.warnings[0].contains("appearance.monitor_layout_minimum_monitors"))
 }
 
 @Test func parsesGridKeysAndBehavior() throws {
